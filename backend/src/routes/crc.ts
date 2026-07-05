@@ -38,6 +38,11 @@ function resolveTemplatePath(controlShortId: string, ext: ".docx" | ".doc"): str
   return resolved;
 }
 
+function sanitizeDownloadFilename(controlTitle: string, ext: string): string {
+  const sanitizedTitle = controlTitle.replace(/[\\/:*?"<>|]/g, "_").trim();
+  return encodeURIComponent(`${sanitizedTitle}${ext}`);
+}
+
 const templateStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     // Ensure the templates directory exists
@@ -2225,8 +2230,11 @@ router.get("/templates/:controlId/download", authenticateToken, async (req, res)
           const arrayBuffer = await fileResponse.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
 
+          const ext = path.extname(templateRecord.filename) || ".docx";
+          const encodedFilename = sanitizeDownloadFilename(controlTitle, ext);
+
           res.setHeader("Content-Type", contentType);
-          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(templateRecord.filename)}"`);
+          res.setHeader("Content-Disposition", `attachment; filename="${encodedFilename}"`);
           return res.send(buffer);
         } else {
           console.error(`Failed to fetch from uploadthing (non-ok response): ${fileResponse.statusText}. Falling back to disk/HTML.`);
@@ -2278,7 +2286,16 @@ router.get("/templates/:controlId/download", authenticateToken, async (req, res)
         metadata: { format, source: "disk" }
       });
 
-      return res.download(chosenPath, `MATUR-CRC-${controlShortId}-Template.${format}`);
+      const encodedFilename = sanitizeDownloadFilename(controlTitle, `.${format}`);
+      res.setHeader("Content-Disposition", `attachment; filename="${encodedFilename}"`);
+      return res.sendFile(chosenPath, (err) => {
+        if (err) {
+          console.error("Error streaming template file:", err);
+          if (!res.headersSent) {
+            res.status(500).json({ success: false, error: "Failed to stream template file" });
+          }
+        }
+      });
     }
 
     let templateHtml = "";
@@ -2562,8 +2579,9 @@ router.get("/templates/:controlId/download", authenticateToken, async (req, res)
       `;
     }
 
+    const encodedFilename = sanitizeDownloadFilename(controlTitle, ".doc");
     res.header("Content-Type", "application/vnd.ms-word");
-    res.attachment(`MATUR-CRC-${controlShortId}-Template.doc`);
+    res.setHeader("Content-Disposition", `attachment; filename="${encodedFilename}"`);
     
     // Log event for fallback
     await recordEvent({

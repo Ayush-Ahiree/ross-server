@@ -1760,10 +1760,25 @@ class ApiService {
     const contentDisposition = response.headers.get("Content-Disposition");
     let filename = `MATUR-CRC-${controlId}-Template.docx`;
     
-    if (contentDisposition && contentDisposition.includes("filename=")) {
-      const match = contentDisposition.match(/filename="?([^"]+)"?/);
-      if (match && match[1]) {
-        filename = match[1];
+    if (contentDisposition) {
+      // 1. Try to match filename*=UTF-8''... (RFC 5987/6266)
+      const utf8Match = contentDisposition.match(/filename\*=\s*UTF-8''([^;\n]+)/i);
+      if (utf8Match && utf8Match[1]) {
+        try {
+          filename = decodeURIComponent(utf8Match[1]);
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        // 2. Try to match standard filename="..."
+        const match = contentDisposition.match(/filename="?([^";\n]+)"?/);
+        if (match && match[1]) {
+          try {
+            filename = decodeURIComponent(match[1]);
+          } catch (e) {
+            filename = match[1];
+          }
+        }
       }
     }
     
