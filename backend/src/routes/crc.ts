@@ -2225,8 +2225,12 @@ router.get("/templates/:controlId/download", authenticateToken, async (req, res)
           const arrayBuffer = await fileResponse.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
 
+          const ext = path.extname(templateRecord.filename) || ".docx";
+          const sanitizedTitle = controlTitle.replace(/[\\/:*?"<>|]/g, "_").trim();
+          const downloadFilename = `${sanitizedTitle}${ext}`;
+
           res.setHeader("Content-Type", contentType);
-          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(templateRecord.filename)}"`);
+          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
           return res.send(buffer);
         } else {
           console.error(`Failed to fetch from uploadthing (non-ok response): ${fileResponse.statusText}. Falling back to disk/HTML.`);
@@ -2278,7 +2282,10 @@ router.get("/templates/:controlId/download", authenticateToken, async (req, res)
         metadata: { format, source: "disk" }
       });
 
-      return res.download(chosenPath, `MATUR-CRC-${controlShortId}-Template.${format}`);
+      const sanitizedTitle = controlTitle.replace(/[\\/:*?"<>|]/g, "_").trim();
+      const downloadFilename = `${sanitizedTitle}.${format}`;
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+      return res.sendFile(chosenPath);
     }
 
     let templateHtml = "";
@@ -2562,8 +2569,10 @@ router.get("/templates/:controlId/download", authenticateToken, async (req, res)
       `;
     }
 
+    const sanitizedTitle = controlTitle.replace(/[\\/:*?"<>|]/g, "_").trim();
+    const downloadFilename = `${sanitizedTitle}.doc`;
     res.header("Content-Type", "application/vnd.ms-word");
-    res.attachment(`MATUR-CRC-${controlShortId}-Template.doc`);
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
     
     // Log event for fallback
     await recordEvent({

@@ -150,6 +150,20 @@ router.post("/", authenticateToken, async (req, res) => {
       req.body,
     );
 
+    // Check for duplicate project name (case-insensitive for active projects of the same user)
+    const duplicateCheck = await client.query(
+      "SELECT id FROM projects WHERE user_id = $1 AND LOWER(name) = LOWER($2) AND deleted_at IS NULL",
+      [userId, name]
+    );
+
+    if (duplicateCheck.rows.length > 0) {
+      await client.query("ROLLBACK");
+      beganTxn = false;
+      return res.status(400).json({
+        error: "A project with this name already exists. Please choose a unique name.",
+      });
+    }
+
     // Get current AIMA version using transactional client
     const currentVersion = await getCurrentVersion(client);
 
@@ -232,6 +246,18 @@ router.put(
   async (req, res) => {
   try {
     const { name, description, aiSystemType, industry, status, pathChoice } = req.body;
+
+    if (name) {
+      const duplicateCheck = await pool.query(
+        "SELECT id FROM projects WHERE user_id = $1 AND LOWER(name) = LOWER($2) AND id != $3 AND deleted_at IS NULL",
+        [req.project.user_id, name, req.params.projectId]
+      );
+      if (duplicateCheck.rows.length > 0) {
+        return res.status(400).json({
+          error: "A project with this name already exists. Please choose a unique name.",
+        });
+      }
+    }
 
     const result = await pool.query(
       "UPDATE projects SET name = COALESCE($1, name), description = COALESCE($2, description), ai_system_type = COALESCE($3, ai_system_type), industry = COALESCE($4, industry), status = COALESCE($5, status), path_choice = COALESCE($6, path_choice), updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING *",
@@ -319,6 +345,17 @@ router.post(
     try {
       const projectId = req.params.projectId;
       const actorId = req.user!.id;
+
+      // Check if another active project has the same name
+      const duplicateCheck = await pool.query(
+        "SELECT id FROM projects WHERE user_id = $1 AND LOWER(name) = LOWER($2) AND id != $3 AND deleted_at IS NULL",
+        [req.project.user_id, req.project.name, projectId]
+      );
+      if (duplicateCheck.rows.length > 0) {
+        return res.status(400).json({
+          error: "A project with this name already exists. Please rename or delete the existing project before restoring.",
+        });
+      }
 
       const result = await pool.query(
         "UPDATE projects SET deleted_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND deleted_at IS NOT NULL AND deleted_at > NOW() - INTERVAL '30 days' RETURNING *",

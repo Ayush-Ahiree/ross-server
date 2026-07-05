@@ -101,6 +101,16 @@ export default function DashboardPage() {
     return isPremiumStatus(user?.subscription_status) ? getReportRoute(projId, "CRC") : getReportRoute(projId, "AIMA");
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    const yyyy = date.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+  };
+
   const getProjectEditHref = (projId: string) => {
     const project = projects.find(p => p.id === projId);
     const savedChoice = project?.path_choice || localStorage.getItem(`path_choice_${user?.id}_${projId}`);
@@ -224,6 +234,17 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Fix Radix UI Dialog pointer-events lock bug when modal states change
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (!deletingProjectId && !editingProject && !showCreateForm && !showPathSelection) {
+      const timer = setTimeout(() => {
+        document.body.style.pointerEvents = "";
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [deletingProjectId, editingProject, showCreateForm, showPathSelection]);
+
   useEffect(() => {
     if (authLoading) {
       return;
@@ -299,7 +320,7 @@ export default function DashboardPage() {
         setIsProjectLimitReached(true);
         setShowSubscriptionModal(true);
       } else {
-        showToast.error("Failed to create project. Please try again.");
+        showToast.error(error.message || "Failed to create project. Please try again.");
       }
     } finally {
       setIsCreating(false);
@@ -326,9 +347,9 @@ export default function DashboardPage() {
       setProjects(prev => prev.map(p => (p.id === editingProject.id ? updatedProject : p)));
       setEditingProject(null);
       showToast.success("Project updated successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update project:", error);
-      showToast.error("Failed to update project. Please try again.");
+      showToast.error(error.message || "Failed to update project. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -533,10 +554,10 @@ export default function DashboardPage() {
                   >
                     <Card className={`h-full hover:shadow-xl transition-all duration-300 ${["bg-chart-1/10", "bg-chart-2/10", "bg-chart-3/10", "bg-chart-4/10", "bg-chart-5/10"][index % 5]}`}>
                       <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1 mr-2">
-                            <CardTitle className="text-lg mb-1 flex items-center justify-between">
-                              <span className="truncate pr-2">{project.name}</span>
+                        <div className="flex justify-between items-start w-full min-w-0">
+                          <div className="flex-1 mr-2 min-w-0">
+                            <CardTitle className="text-lg mb-1 flex items-center justify-between w-full min-w-0">
+                              <span className="truncate pr-2 min-w-0">{project.name}</span>
                               {project.user_id && user?.id && project.user_id !== user.id && (
                                 <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 font-medium bg-primary/10 text-primary border-primary/20 shrink-0">
                                   Shared
@@ -584,6 +605,14 @@ export default function DashboardPage() {
                                   </span>
                                   <IconArrowRight className="w-3.5 h-3.5" />
                                 </button>
+                              )}
+                              {project.created_at && (
+                                <>
+                                  <span className="text-muted-foreground/30 select-none">•</span>
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                    Created on {formatDate(project.created_at)}
+                                  </span>
+                                </>
                               )}
                             </div>
                           </div>
