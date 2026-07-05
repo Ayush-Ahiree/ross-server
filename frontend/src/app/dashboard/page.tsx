@@ -237,13 +237,13 @@ export default function DashboardPage() {
   // Fix Radix UI Dialog pointer-events lock bug when modal states change
   useEffect(() => {
     if (typeof document === "undefined") return;
-    if (!deletingProjectId && !editingProject && !showCreateForm && !showPathSelection) {
+    if (!deletingProjectId && !editingProject && !showCreateForm && !showPathSelection && !showSubscriptionModal) {
       const timer = setTimeout(() => {
         document.body.style.pointerEvents = "";
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [deletingProjectId, editingProject, showCreateForm, showPathSelection]);
+  }, [deletingProjectId, editingProject, showCreateForm, showPathSelection, showSubscriptionModal]);
 
   useEffect(() => {
     if (authLoading) {

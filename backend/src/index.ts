@@ -67,8 +67,8 @@ app.use(cors({
       "http://localhost:3001"
     ].filter(Boolean) as string[];
 
-    const isAllowed = allowed.some(url => origin === url || origin.startsWith(url));
-    const isVercel = origin.endsWith(".vercel.app") || origin.match(/^https?:\/\/ross-server-[a-z0-9-]+\.vercel\.app$/i);
+    const isAllowed = allowed.some(url => origin === url);
+    const isVercel = !!origin.match(/^https?:\/\/ross-server-[a-z0-9-]+\.vercel\.app$/i);
 
     if (isAllowed || isVercel) {
       callback(null, true);
