@@ -177,6 +177,60 @@ function mapRowToResponse(row: any) {
   };
 }
 
+// Helper to upsert a custom provider/model into the dynamic catalog
+async function upsertToVendorCatalog(client: any, provider: string, modelName: string, complianceUrl: string | null) {
+  const trimmedProvider = provider.trim();
+  const trimmedModelName = modelName.trim();
+  
+  if (!trimmedProvider || !trimmedModelName) return;
+  
+  // Skip internal / proprietary / other placeholders
+  const lowerProvider = trimmedProvider.toLowerCase();
+  if (["internal", "proprietary", "other", "custom"].includes(lowerProvider)) return;
+
+  try {
+    const selectRes = await client.query(
+      "SELECT id, models, compliance_url FROM vendor_catalog WHERE LOWER(vendor_name) = LOWER($1)",
+      [trimmedProvider]
+    );
+
+    if (selectRes.rows.length === 0) {
+      await client.query(
+        "INSERT INTO vendor_catalog (vendor_name, models, compliance_url) VALUES ($1, $2, $3)",
+        [trimmedProvider, JSON.stringify([trimmedModelName]), complianceUrl || null]
+      );
+    } else {
+      const vendor = selectRes.rows[0];
+      const modelsList: string[] = Array.isArray(vendor.models) ? vendor.models : [];
+      
+      const modelExists = modelsList.some(m => m.toLowerCase().trim() === trimmedModelName.toLowerCase());
+      if (!modelExists) {
+        const updatedModels = [...modelsList, trimmedModelName];
+        const updatedComplianceUrl = vendor.compliance_url || complianceUrl || null;
+        await client.query(
+          "UPDATE vendor_catalog SET models = $1::jsonb, compliance_url = $2 WHERE id = $3",
+          [JSON.stringify(updatedModels), updatedComplianceUrl, vendor.id]
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Failed to upsert to vendor catalog:", error);
+  }
+}
+
+// GET /inventory/vendors/catalog - Fetch dynamic vendor catalog
+router.get("/vendors/catalog", authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT vendor_name AS \"vendorName\", models, compliance_url AS \"complianceUrl\" FROM vendor_catalog ORDER BY vendor_name ASC"
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching vendor catalog:", error);
+    res.status(500).json({ error: "Failed to fetch vendor catalog" });
+  }
+});
+
 // GET /inventory/:projectId - List components with filters
 router.get("/:projectId", authenticateToken, async (req, res) => {
   try {
@@ -377,6 +431,9 @@ router.post("/:projectId", authenticateToken, async (req, res) => {
       client
     });
 
+    // Auto-upsert provider & model to dynamic vendor catalog
+    await upsertToVendorCatalog(client, data.provider, data.componentName, complianceUrl);
+
     await client.query("COMMIT");
     beganTxn = false;
 
@@ -483,6 +540,9 @@ router.put("/:projectId/:id", authenticateToken, async (req, res) => {
       metadata: { componentId: updated.componentId, componentName: updated.componentName },
       client
     });
+
+    // Auto-upsert provider & model to dynamic vendor catalog
+    await upsertToVendorCatalog(client, data.provider, data.componentName, complianceUrl);
 
     await client.query("COMMIT");
     beganTxn = false;
