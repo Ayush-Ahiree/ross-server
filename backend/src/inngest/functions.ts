@@ -36,7 +36,10 @@ export const evaluateSingleResponse = inngest.createFunction(
     id: "evaluate-single-response", 
     name: "Evaluate Single Response",
     onFailure: async ({ event, error }: { event: any; error: Error }) => {
-      const { jobId, responseIndex } = event.data;
+      const { jobId, responseIndex } = extractEvaluationJobContext(event);
+      if (!jobId || responseIndex === undefined) {
+        return;
+      }
       await inngest.send({
         name: "evaluation/single.completed",
         data: {
@@ -180,6 +183,36 @@ function extractJobContext(event: any): { jobId?: string; promptIndex?: number }
 
   return {};
 }
+
+/**
+ * Defensively extracts jobId and responseIndex from various Inngest event shapes.
+ * Tries canonical paths in order and logs a warning with raw event JSON if extraction fails.
+ */
+function extractEvaluationJobContext(event: any): { jobId?: string; responseIndex?: number } {
+  const paths = [
+    () => event?.data?.event?.data,
+    () => event?.data,
+    () => event?.data?.events?.[0]?.data,
+  ];
+
+  for (const getPath of paths) {
+    const data = getPath();
+    if (data?.jobId && data?.responseIndex !== undefined) {
+      return {
+        jobId: data.jobId,
+        responseIndex: data.responseIndex,
+      };
+    }
+  }
+
+  console.warn(
+    "[evaluateSingleResponse.onFailure] Failed to extract jobId/responseIndex from event. Raw event:",
+    JSON.stringify(event, null, 2)
+  );
+
+  return {};
+}
+
 
 export const callUserApiForPrompt = inngest.createFunction(
   {
