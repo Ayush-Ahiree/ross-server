@@ -36,8 +36,8 @@ export const evaluateSingleResponse = inngest.createFunction(
     id: "evaluate-single-response", 
     name: "Evaluate Single Response",
     onFailure: async ({ event, error }: { event: any; error: Error }) => {
-      const { jobId, responseIndex } = extractEvaluationJobContext(event);
-      if (!jobId || responseIndex === undefined) {
+      const { jobId, responseIndex, evaluationId } = extractEvaluationJobContext(event);
+      if ((!jobId || responseIndex === undefined) && !evaluationId) {
         return;
       }
       await inngest.send({
@@ -45,6 +45,7 @@ export const evaluateSingleResponse = inngest.createFunction(
         data: {
           jobId,
           responseIndex,
+          evaluationId,
           result: null,
           error: error.message || "Unknown error",
         },
@@ -60,7 +61,8 @@ export const evaluateSingleResponse = inngest.createFunction(
       userId, 
       category, 
       questionText, 
-      userResponse 
+      userResponse,
+      evaluationId
     } = event.data;
 
     const evaluation = await step.run("evaluate-fairness", async () => {
@@ -82,6 +84,7 @@ export const evaluateSingleResponse = inngest.createFunction(
       data: {
         jobId,
         responseIndex,
+        evaluationId,
         result: evaluation,
         error: null,
       },
@@ -185,32 +188,77 @@ function extractJobContext(event: any): { jobId?: string; promptIndex?: number }
 }
 
 /**
- * Defensively extracts jobId and responseIndex from various Inngest event shapes.
- * Tries canonical paths in order and logs a warning with raw event JSON if extraction fails.
+ * Defensively extracts jobId, responseIndex, and evaluationId from various Inngest event shapes.
+ * Tries canonical paths in order and logs a redacted warning if both identifiers are missing.
  */
-function extractEvaluationJobContext(event: any): { jobId?: string; responseIndex?: number } {
+function extractEvaluationJobContext(event: any): { jobId?: string; responseIndex?: number; evaluationId?: string } {
   const paths = [
     () => event?.data?.event?.data,
     () => event?.data,
     () => event?.data?.events?.[0]?.data,
   ];
 
+  let jobId: string | undefined;
+  let responseIndex: number | undefined;
+  let evaluationId: string | undefined;
+
   for (const getPath of paths) {
     const data = getPath();
-    if (data?.jobId && data?.responseIndex !== undefined) {
-      return {
-        jobId: data.jobId,
-        responseIndex: data.responseIndex,
-      };
+    if (data) {
+      if (data.jobId && data.responseIndex !== undefined) {
+        jobId = data.jobId;
+        responseIndex = data.responseIndex;
+      }
+      if (data.evaluationId) {
+        evaluationId = data.evaluationId;
+      }
     }
   }
 
-  console.warn(
-    "[evaluateSingleResponse.onFailure] Failed to extract jobId/responseIndex from event. Raw event:",
-    JSON.stringify(event, null, 2)
-  );
+  if ((!jobId || responseIndex === undefined) && !evaluationId) {
+    const redactEvent = (ev: any): any => {
+      if (!ev) return ev;
+      const clone = { ...ev };
+      if (clone.data) {
+        clone.data = { ...clone.data };
+        delete clone.data.userId;
+        delete clone.data.userResponse;
+        delete clone.data.questionText;
+        delete clone.data.category;
+        if (clone.data.event) {
+          clone.data.event = { ...clone.data.event };
+          if (clone.data.event.data) {
+            clone.data.event.data = { ...clone.data.event.data };
+            delete clone.data.event.data.userId;
+            delete clone.data.event.data.userResponse;
+            delete clone.data.event.data.questionText;
+            delete clone.data.event.data.category;
+          }
+        }
+        if (Array.isArray(clone.data.events)) {
+          clone.data.events = clone.data.events.map((e: any) => {
+            if (e && e.data) {
+              const ec = { ...e, data: { ...e.data } };
+              delete ec.data.userId;
+              delete ec.data.userResponse;
+              delete ec.data.questionText;
+              delete ec.data.category;
+              return ec;
+            }
+            return e;
+          });
+        }
+      }
+      return clone;
+    };
 
-  return {};
+    console.warn(
+      "[evaluateSingleResponse.onFailure] Failed to extract jobId/responseIndex or evaluationId from event. Raw event:",
+      JSON.stringify(redactEvent(event), null, 2)
+    );
+  }
+
+  return { jobId, responseIndex, evaluationId };
 }
 
 

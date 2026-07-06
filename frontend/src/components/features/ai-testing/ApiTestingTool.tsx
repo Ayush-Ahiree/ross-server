@@ -74,6 +74,41 @@ const API_KEY_FIELD_HINTS: Record<ApiKeyPlacement, string> = {
   body_field: "api_key",
 };
 
+const COPY = {
+  vulnerability: {
+    heroTitle: "API Vulnerability Assessment",
+    heroDescription: "Configure your API endpoint to run automated security scans and identify model vulnerabilities.",
+    cardTitle: "API Endpoint Security Configuration",
+    cardSubtitle: "Specify the model endpoint to scan for vulnerabilities",
+    endpointLabel: "Security Scan Endpoint URL",
+    requestTemplateLabel: "Request Body Template (Security Scan)",
+    requestTemplateHelper: "Paste the exact JSON payload your API expects (POST). Use {{prompt}} anywhere you want us to inject each adversarial vulnerability probe. We will replace it before sending the request.",
+    responsePathLabel: "Response Output Path for Vulnerability Analysis",
+    responsePathHelper: "Use dot and bracket notation (e.g. choices[0].message.content) to locate the model's text output for vulnerability analysis.",
+    howToTitle: "How to configure security scan inputs & outputs",
+    howToResponseOutput: "We will extract that string and feed it into the security evaluators to check for policy violations.",
+    instantQueueText: "We will queue the security scan instantly. You can monitor scan progress on the next screen.",
+    nextStepsJobText: "The backend creates a background vulnerability scanning job instantly.",
+    nextStepsRedirectText: "As soon as the scan is done, we redirect you to the security scorecard automatically.",
+  },
+  "api-testing": {
+    heroTitle: "API Automated Fairness Testing",
+    heroDescription: "Configure your API endpoint to run automated bias, stereotyping, and fairness evaluations across protected groups.",
+    cardTitle: "API Endpoint Bias & Fairness Configuration",
+    cardSubtitle: "Specify the model endpoint to test for bias across protected groups",
+    endpointLabel: "Fairness Evaluation Endpoint URL",
+    requestTemplateLabel: "Request Body Template (Fairness Evaluation)",
+    requestTemplateHelper: "Paste the exact JSON payload your API expects (POST). Use {{prompt}} anywhere you want us to inject each bias and fairness evaluation prompt. We will replace it before sending the request.",
+    responsePathLabel: "Response Output Path for Bias & Fairness Analysis",
+    responsePathHelper: "Use dot and bracket notation (e.g. choices[0].message.content) to locate the model's text output for bias and fairness evaluation across protected attributes.",
+    howToTitle: "How to configure fairness evaluation inputs & outputs",
+    howToResponseOutput: "We will extract that string and feed it into the fairness evaluators to check for demographic bias.",
+    instantQueueText: "We will queue the fairness evaluation instantly. You can monitor evaluation progress on the next screen.",
+    nextStepsJobText: "The backend creates a background fairness evaluation job instantly.",
+    nextStepsRedirectText: "As soon as the evaluation is done, we redirect you to the bias & fairness scorecard automatically.",
+  },
+};
+
 interface ApiTestingToolProps {
   mode: "vulnerability" | "api-testing";
 }
@@ -257,12 +292,10 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            {mode === "vulnerability" ? "API Vulnerability Assessment" : "API Automated Fairness Testing"}
+            {COPY[mode].heroTitle}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {mode === "vulnerability"
-              ? "Configure your API endpoint to run automated security scans and identify model vulnerabilities."
-              : "Configure your API endpoint to run automated bias, stereotyping, and fairness evaluations across protected groups."}
+            {COPY[mode].heroDescription}
           </p>
         </div>
 
@@ -406,10 +439,10 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">
-                {mode === "vulnerability" ? "API Endpoint Security Configuration" : "API Endpoint Bias & Fairness Configuration"}
+                {COPY[mode].cardTitle}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {mode === "vulnerability" ? "Specify the model endpoint to scan for vulnerabilities" : "Specify the model endpoint to test for bias across protected groups"}
+                {COPY[mode].cardSubtitle}
               </p>
             </div>
           </div>
@@ -420,7 +453,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
                 htmlFor="api-endpoint"
                 className="block text-sm font-medium text-foreground mb-2"
               >
-                {mode === "vulnerability" ? "Security Scan Endpoint URL" : "Fairness Evaluation Endpoint URL"}
+                {COPY[mode].endpointLabel}
               </label>
               <input
                 id="api-endpoint"
@@ -455,7 +488,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
                 htmlFor="request-template"
                 className="block text-sm font-medium text-foreground mb-2"
               >
-                {mode === "vulnerability" ? "Request Body Template (Security Scan)" : "Request Body Template (Fairness Evaluation)"}
+                {COPY[mode].requestTemplateLabel}
               </label>
               <textarea
                 id="request-template"
@@ -475,9 +508,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
                 `}
               />
               <p className="mt-2 text-xs text-muted-foreground">
-                {mode === "vulnerability"
-                  ? "Paste the exact JSON payload your API expects (POST). Use {{prompt}} anywhere you want us to inject each adversarial vulnerability probe. We will replace it before sending the request."
-                  : "Paste the exact JSON payload your API expects (POST). Use {{prompt}} anywhere you want us to inject each bias and fairness evaluation prompt. We will replace it before sending the request."}
+                {COPY[mode].requestTemplateHelper}
               </p>
               {templateError && (
                 <p className="mt-2 text-sm text-destructive flex items-center gap-1">
@@ -492,7 +523,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
                 htmlFor="response-key-path"
                 className="block text-sm font-medium text-foreground mb-2"
               >
-                {mode === "vulnerability" ? "Response Output Path for Vulnerability Analysis" : "Response Output Path for Bias & Fairness Analysis"}
+                {COPY[mode].responsePathLabel}
               </label>
               <input
                 id="response-key-path"
@@ -513,9 +544,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
                 `}
               />
               <p className="mt-2 text-xs text-muted-foreground">
-                {mode === "vulnerability"
-                  ? "Use dot and bracket notation (e.g. choices[0].message.content) to locate the model's text output for vulnerability analysis."
-                  : "Use dot and bracket notation (e.g. choices[0].message.content) to locate the model's text output for bias and fairness evaluation across protected attributes."}
+                {COPY[mode].responsePathHelper}
               </p>
               {responseKeyError && (
                 <p className="mt-2 text-sm text-destructive flex items-center gap-1">
@@ -690,7 +719,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
 
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 space-y-4">
               <h3 className="text-sm font-semibold text-primary">
-                {mode === "vulnerability" ? "How to configure security scan inputs & outputs" : "How to configure fairness evaluation inputs & outputs"}
+                {COPY[mode].howToTitle}
               </h3>
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
@@ -725,9 +754,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
                     <li>Tell us how to locate the model&apos;s final text in your JSON response.</li>
                     <li>Use dot/bracket notation (e.g. <code>choices[0].message.content</code>).</li>
                     <li>
-                      {mode === "vulnerability"
-                        ? "We will extract that string and feed it into the security evaluators to check for policy violations."
-                        : "We will extract that string and feed it into the fairness evaluators to check for demographic bias."}
+                      {COPY[mode].howToResponseOutput}
                     </li>
                   </ul>
                   <pre className="text-xs font-mono text-primary/90 bg-background rounded-lg border border-primary/20 p-3 whitespace-pre-wrap">
@@ -789,9 +816,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
               )}
             </div>
             <p className="text-xs text-muted-foreground text-center mt-2">
-              {mode === "vulnerability"
-                ? "We will queue the security scan instantly. You can monitor scan progress on the next screen."
-                : "We will queue the fairness evaluation instantly. You can monitor evaluation progress on the next screen."}
+              {COPY[mode].instantQueueText}
             </p>
             {jobStartError && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 text-sm text-destructive flex items-center gap-2">
@@ -813,15 +838,11 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
           </h3>
           <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-6">
             <li>
-              {mode === "vulnerability"
-                ? "The backend creates a background vulnerability scanning job instantly."
-                : "The backend creates a background fairness evaluation job instantly."}
+              {COPY[mode].nextStepsJobText}
             </li>
             <li>You will land on a live progress page that polls every few seconds.</li>
             <li>
-              {mode === "vulnerability"
-                ? "As soon as the scan is done, we redirect you to the security scorecard automatically."
-                : "As soon as the evaluation is done, we redirect you to the bias & fairness scorecard automatically."}
+              {COPY[mode].nextStepsRedirectText}
             </li>
           </ul>
         </motion.div>
