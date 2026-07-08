@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useAssessmentContext } from "../../../contexts/AssessmentContext";
 import { useAuth } from "../../../contexts/AuthContext";
 import { isPremiumStatus } from "../../../lib/constants";
-import { IconAlertTriangle, IconBrain } from "@tabler/icons-react";
+import { IconAlertTriangle, IconBrain, IconMessages } from "@tabler/icons-react";
 import { AssessmentSkeleton } from "../../../components/Skeleton";
 import QuestionView from "../../../components/assess/QuestionView";
 import CommentsPanel from "../../../components/shared/CommentsPanel";
@@ -111,13 +111,16 @@ export default function AssessmentPage() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex-1 overflow-auto">
+    <div className="flex flex-col w-full">
+      <div className="w-full">
         <QuestionView />
       </div>
 
-      <div className="border-t p-6 bg-muted/10 mx-auto w-full max-w-7xl">
-        <h3 className="text-lg font-semibold mb-4 px-2">Project Notes & Collaboration</h3>
+      <div className="border border-border/80 p-6 bg-card rounded-2xl shadow-sm mt-6 max-w-4xl mx-auto w-full flex-none">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-4 px-2">
+          <IconMessages className="w-4 h-4 text-primary shrink-0" />
+          <span>Project Notes & Collaboration</span>
+        </h3>
         <CommentsPanel projectId={projectId as string} objectType="PROJECT" objectId={projectId as string} />
       </div>
     </div>

@@ -12,7 +12,6 @@ import {
   IconUsers,
   IconTarget,
   IconArrowRight,
-  IconSparkles,
   IconCircleCheck,
   IconLogin,
   IconDashboard,
@@ -152,7 +151,7 @@ export default function Home() {
               >
                 <Link href="/dashboard">
                   <span className="inline-flex items-center gap-3">
-                    <span className="bg-background dark:bg-black rounded-full p-2">
+                    <span className="bg-card dark:bg-black rounded-full p-2">
                       <IconLayoutDashboard className="w-4 h-4 text-foreground dark:text-white" />
                     </span>
                     Go to Dashboard
@@ -175,7 +174,7 @@ export default function Home() {
               >
                 <Link href="/auth?isLogin=false">
                   <span className="inline-flex items-center gap-3">
-                    <span className="bg-background dark:bg-black rounded-full p-2">
+                    <span className="bg-card dark:bg-black rounded-full p-2">
                       <IconArrowRight className="w-4 h-4 text-foreground dark:text-white" />
                     </span>
                     Get Started
@@ -529,7 +528,7 @@ export default function Home() {
             <Card className="bg-card border-border">
               <CardContent className="p-12">
                 <div className="flex items-center justify-center mb-6">
-                  <IconSparkles className="w-12 h-12 text-primary" />
+                  <IconTarget className="w-12 h-12 text-primary" />
                 </div>
                 <h2 className="text-4xl md:text-5xl font-bold mb-6">
                   <span className="text-primary">

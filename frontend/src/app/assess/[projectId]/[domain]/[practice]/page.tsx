@@ -6,10 +6,73 @@ import { useAuth } from "../../../../../contexts/AuthContext";
 import { useRequireAuth } from "../../../../../hooks/useRequireAuth";
 import { apiService } from "../../../../../lib/api";
 import { motion } from "framer-motion";
-import { IconArrowLeft, IconDeviceFloppy, IconTarget } from "@tabler/icons-react";
+import {
+  IconArrowLeft,
+  IconTarget,
+  IconCpu,
+  IconDatabase,
+  IconShieldLock,
+  IconFolder,
+  IconInfoCircle,
+  IconLoader2,
+  IconLock,
+} from "@tabler/icons-react";
 import { AssessmentSkeleton } from "../../../../../components/Skeleton";
 import { safeRenderHTML, stripHTML } from "../../../../../lib/htmlUtils";
 import { buildAssessmentAnswerKey } from "../../../../../lib/assessmentValidation";
+import { useOptionalAssessmentContext } from "../../../../../contexts/AssessmentContext";
+import { Breadcrumb } from "@/components/shared/Breadcrumb";
+import { isPremiumStatus } from "@/lib/constants";
+import { getDomainIcon } from "@/lib/utils";
+
+const getLevelColor = (level: string | number) => {
+    const lvl = String(level);
+    if (lvl === "1") {
+        return "bg-blue-50/50 text-blue-700 border-blue-200/50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800/30";
+    }
+    if (lvl === "2") {
+        return "bg-purple-50/50 text-purple-700 border-purple-200/50 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-800/30";
+    }
+    return "bg-amber-50/50 text-amber-700 border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800/30";
+};
+
+const getStreamColor = (stream: string) => {
+    if (stream === "A") {
+        return "bg-teal-50/50 text-teal-700 border-teal-200/50 dark:bg-teal-950/20 dark:text-teal-400 dark:border-teal-800/30";
+    }
+    return "bg-rose-50/50 text-rose-700 border-rose-200/50 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800/30";
+};
+
+const getOptionColors = (value: number, isSelected: boolean) => {
+    if (value === 0) { // No Maturity
+        return {
+            labelClass: isSelected
+                ? "border-destructive bg-destructive/5 dark:bg-destructive/10"
+                : "border-border hover:border-destructive/40 hover:bg-destructive/2 dark:hover:bg-destructive/2",
+            radioClass: isSelected
+                ? "border-destructive bg-destructive"
+                : "border-border bg-transparent",
+        };
+    } else if (value === 1 || value === 2) { // Initial / Developing
+        return {
+            labelClass: isSelected
+                ? "border-warning bg-warning/5 dark:bg-warning/10"
+                : "border-border hover:border-warning/40 hover:bg-warning/2 dark:hover:bg-warning/2",
+            radioClass: isSelected
+                ? "border-warning bg-warning"
+                : "border-border bg-transparent",
+        };
+    } else { // Mature
+        return {
+            labelClass: isSelected
+                ? "border-success bg-success/5 dark:bg-success/10"
+                : "border-border hover:border-success/40 hover:bg-success/2 dark:hover:bg-success/2",
+            radioClass: isSelected
+                ? "border-success bg-success"
+                : "border-border bg-transparent",
+        };
+    }
+};
 
 interface Question {
   level: string;
@@ -61,11 +124,14 @@ const maturityLabels: Record<number, string> = {
 export default function AssessmentPage() {
   const params = useParams();
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { loading: authLoading } = useRequireAuth();
   const projectId = params.projectId as string;
   const domainId = params.domain as string;
   const practiceId = params.practice as string;
+
+  const assessmentContext = useOptionalAssessmentContext();
+  const isReadOnly = assessmentContext?.isReadOnly || false;
 
   const [practice, setPractice] = useState<Practice | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -127,6 +193,7 @@ export default function AssessmentPage() {
   }, [domainId, practiceId, projectId, isAuthenticated, authLoading]);
 
   const handleAnswerChange = async (questionIndex: number, value: number) => {
+    if (isReadOnly) return;
     const question = questions[questionIndex];
     const key = buildAssessmentAnswerKey(domainId, practiceId, question.level, question.stream, questionIndex);
 
@@ -178,42 +245,71 @@ export default function AssessmentPage() {
   }, 0);
   const progressPercent = questions.length > 0 ? Math.min(100, (answeredCount / questions.length) * 100) : 0;
 
+  const projectName = assessmentContext?.projectName;
+  const premiumStatus = isPremiumStatus(user?.subscription_status);
+  const projectBreadcrumbHref = premiumStatus
+      ? `/assess/${projectId}/crc/dashboard`
+      : `/assess/${projectId}`;
+
+  const DomainIcon = getDomainIcon(domainId);
+
   return (
-    <div className="min-h-screen">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="bg-card rounded-2xl p-6 mb-8 border border-border shadow-sm"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-            >
-              <IconArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-          </div>
-          <h1 className="text-3xl font-bold mb-2 text-foreground">
-            {practice.title}
-          </h1>
-          <p className="text-muted-foreground mb-4 text-lg">{practice.description}</p>
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              Domain: {domainId} | Practice: {practiceId}
-            </div>
+    <div className="min-h-screen bg-background">
+      {/* HEADER */}
+      <div className="bg-background border-b border-border px-8 py-3 flex-none sticky top-0 z-20 shadow-xs w-full mb-8">
+        <div className="max-w-7xl mx-auto flex flex-col gap-2">
+          {/* Top: Breadcrumb */}
+          <div className="flex items-center justify-between text-xs">
+            <Breadcrumb projectName={projectName || "Loading..."} projectHref={projectBreadcrumbHref} items={[{ label: "AI Maturity Assessment (AIMA)" }]} />
+            
             {saving && (
-              <div className="flex items-center gap-2 text-sm text-primary">
-                <IconDeviceFloppy className="w-4 h-4 animate-spin" />
+              <div className="flex items-center gap-2 text-xs text-primary font-medium animate-pulse">
+                <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
                 Saving...
               </div>
             )}
           </div>
-        </motion.div>
+
+          {/* Bottom: Main row */}
+          <div className="flex items-center justify-between gap-4 mt-1">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => router.back()}
+                type="button"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-border/60 hover:bg-muted text-xs text-foreground/80 hover:text-foreground transition-all shadow-2xs shrink-0"
+              >
+                <IconArrowLeft className="w-3.5 h-3.5" />
+                Back
+              </button>
+              <div className="h-5 w-px bg-border shrink-0" />
+              <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                <DomainIcon className="w-4 h-4 text-primary shrink-0" />
+                <h1 className="text-sm font-bold text-foreground truncate">
+                  {practice.title}
+                </h1>
+                <span className="text-muted-foreground/30 text-xs shrink-0">|</span>
+                <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] sm:max-w-xs">
+                  Domain: {domainId}
+                </span>
+                <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] sm:max-w-xs">
+                  Practice: {practiceId}
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 shrink-0">
+              {isReadOnly && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted border border-border text-muted-foreground text-[10px] font-medium">
+                  <IconLock size={10} />
+                  View Only
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-8 pb-8">
 
         {/* Questions */}
         <div className="space-y-6">
@@ -226,61 +322,79 @@ export default function AssessmentPage() {
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-card rounded-2xl p-6 border border-border shadow-sm"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.3 }}
+                className="bg-card rounded-2xl p-8 border border-border/80 shadow-md hover:shadow-lg transition-all"
               >
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary text-primary-foreground">
-                      Level {question.level}
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[10px] py-1 px-2.5 rounded-full font-semibold bg-primary/10 text-primary border border-primary/20 flex items-center">
+                      Question {index + 1} of {questions.length}
                     </span>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
-                      Stream {question.stream}
+                    <span className={`text-[10px] py-1 px-2.5 rounded-full font-semibold border flex items-center gap-1.5 ${getLevelColor(question.level)}`}>
+                      <IconCpu className="w-3.5 h-3.5 shrink-0" />
+                      <span>Level {question.level}</span>
+                    </span>
+                    <span className={`text-[10px] py-1 px-2.5 rounded-full font-semibold border flex items-center gap-1.5 ${getStreamColor(question.stream)}`}>
+                      <IconInfoCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Stream {question.stream}</span>
                     </span>
                   </div>
-                  <p className="text-card-foreground font-medium text-lg leading-relaxed">
+                  <p className="text-foreground font-semibold text-lg leading-relaxed">
                     {question.question}
                   </p>
                   {question.description && (
-                    <div className="mt-3 rounded-xl border border-dashed border-border bg-muted/50 p-4 text-sm text-muted-foreground [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:mb-1 [&_ul]:list-disc [&_ul]:ml-6 [&_ol]:list-decimal [&_ol]:ml-6 [&_li]:mb-1 [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_a]:text-primary [&_a]:underline [&_p]:mb-2 [&_p:last-child]:mb-0">
-                      <div dangerouslySetInnerHTML={{ __html: safeRenderHTML(question.description) }} />
+                    <div className="mt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="p-1 rounded-md bg-primary/10">
+                          <IconInfoCircle size={14} className="text-primary" />
+                        </div>
+                        <span className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Description (Guide Text)</span>
+                      </div>
+                      <div className="rounded-xl border-l-4 border-l-primary/60 border-y border-r border-border bg-muted/20 p-5 text-sm text-foreground/90 font-normal [&_strong]:text-foreground [&_strong]:font-bold [&_b]:text-foreground [&_b]:font-bold [&_ul]:mt-3 [&_ul]:space-y-2 [&_li]:relative [&_li]:pl-5 [&_li:before]:content-['•'] [&_li:before]:absolute [&_li:before]:left-0 [&_li:before]:text-primary [&_p]:mb-3 [&_p:last-child]:mb-0 shadow-2xs">
+                        <div dangerouslySetInnerHTML={{ __html: safeRenderHTML(question.description) }} />
+                      </div>
                     </div>
                   )}
                 </div>
 
-                <div className="flex gap-6">
-                  {[0, 1, 2, 3].map((value) => (
-                    <label
-                      key={value}
-                      className="flex items-center cursor-pointer group"
-                    >
-                      <div className="relative flex items-center justify-center mr-3">
-                        <input
-                          type="radio"
-                          name={`question-${index}`}
-                          value={value}
-                          checked={currentAnswer === value}
-                          onChange={() => handleAnswerChange(index, value)}
-                          className="sr-only peer"
-                        />
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 ${currentAnswer === value
-                          ? "border-primary bg-primary"
-                          : "border-border bg-transparent group-hover:border-primary/50"
-                          }`}>
-                          {currentAnswer === value && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="w-2 h-2 rounded-full bg-white"
-                            />
-                          )}
+                <div className="space-y-3">
+                  {[0, 1, 2, 3].map((value) => {
+                    const isSelected = currentAnswer === value;
+                    const colors = getOptionColors(value, isSelected);
+                    return (
+                      <label
+                        key={value}
+                        className={`flex items-start p-4 rounded-xl border-2 transition-all duration-200 ${colors.labelClass} ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer hover:shadow-xs hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995]"}`}
+                      >
+                        <div className="relative flex items-center justify-center mt-1">
+                          <input
+                            type="radio"
+                            name={`question-${index}`}
+                            value={value}
+                            checked={isSelected}
+                            disabled={isReadOnly}
+                            onChange={() => !isReadOnly && handleAnswerChange(index, value)}
+                            className="sr-only peer"
+                          />
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 peer-focus-visible:ring peer-focus-visible:ring-primary/50 peer-focus-visible:ring-offset-1 ${colors.radioClass}`}>
+                            {isSelected && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-2 h-2 rounded-full bg-white"
+                              />
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-                        {maturityLabels[value] || `Unknown (${value})`}
-                      </span>
-                    </label>
-                  ))}
+                        <div className="ml-3 flex-1">
+                          <div className="text-sm font-semibold text-foreground">
+                            {maturityLabels[value] || `Unknown (${value})`}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </motion.div>
             );
@@ -291,29 +405,30 @@ export default function AssessmentPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          whileHover={{ y: -3 }}
           transition={{ duration: 0.8 }}
-          className="mt-8 bg-card rounded-2xl p-6 border border-border shadow-sm"
+          className="mt-8 bg-card rounded-2xl p-6 border border-border/80 shadow-sm hover:shadow-md transition-all"
         >
-          <h3 className="text-lg font-medium text-card-foreground mb-4 flex items-center gap-2">
-            <IconTarget className="w-5 h-5" />
-            Progress
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+            <IconTarget className="w-4 h-4 text-primary" />
+            <span>Progress</span>
           </h3>
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Questions answered</span>
-              <span className="text-card-foreground font-medium">
+              <span className="text-foreground font-semibold">
                 {answeredCount} / {questions.length}
               </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-3">
+            <div className="w-full bg-muted rounded-full h-2.5">
               <div
-                className="bg-primary h-3 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-primary to-indigo-500 h-2.5 rounded-full transition-all duration-300"
                 style={{
                   width: `${progressPercent}%`,
                 }}
               />
             </div>
-            <div className="text-xs text-muted-foreground text-center">
+            <div className="text-xs text-muted-foreground text-center font-medium">
               {Math.round(progressPercent)}% Complete
             </div>
           </div>

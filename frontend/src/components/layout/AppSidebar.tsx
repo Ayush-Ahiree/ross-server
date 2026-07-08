@@ -35,10 +35,15 @@ import {
   IconSelector,
   IconBug,
   IconGift,
+  IconShieldLock,
+  IconMessageReport,
+  IconApi,
+  IconCpu,
 } from "@tabler/icons-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { AUTH_LOGIN_URL, ROLES, PREMIUM_STATUS } from "../../lib/constants";
+import { getRouteFlags } from "../../lib/route-utils";
 import {
   Sidebar,
   SidebarContent,
@@ -78,7 +83,7 @@ import { showToast } from "@/lib/toast";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useOptionalAssessmentContext } from "../../contexts/AssessmentContext";
 import { apiService, CRCControl } from "../../lib/api";
-import { cn } from "@/lib/utils";
+import { cn, getDomainIcon } from "@/lib/utils";
 import SubscriptionModal from "../features/subscriptions/SubscriptionModal";
 import { ProjectSelectionModal } from "./ProjectSelectionModal";
 import { useSidebarStore, MIN_WIDTH, MAX_WIDTH_RATIO } from "../../store/sidebarStore";
@@ -138,33 +143,6 @@ const sortDomainsByPriority = (domainsList: any[]) => {
 const getProjectIdFromPath = (pathname: string | null): string | null => {
   const match = pathname?.match(/\/assess\/([a-f0-9-]{36})/i);
   return match ? match[1] : null;
-};
-
-const getRouteFlags = (pathname: string | null) => {
-  const isCrcPage = !!pathname?.match(/\/crc($|\/|\?)/);
-  const isFairnessPage = !!pathname?.match(/\/fairness-bias($|\/|\?)/);
-  const isFairnessRootPage = !!pathname?.match(/\/fairness-bias($|\?|\/$)/);
-  const isApiEndpointPage = !!pathname?.match(/\/fairness-bias\/api-endpoint($|\/|\?)/);
-  const isVulnerabilityPage = !!pathname?.match(/\/vulnerability-assessment($|\/|\?)/);
-  const isDatasetTestingPage = !!pathname?.match(/\/fairness-bias\/dataset-testing($|\/|\?)/);
-  const isFairnessOptionsPage = !!pathname?.match(/\/fairness-bias\/options($|\/|\?)/);
-  const isTeamPage = !!pathname?.match(/\/team($|\/|\?)/);
-  const isSettingsPage = !!pathname?.match(/\/assess\/[^/]+\/settings($|\/|\?)/);
-  const isInventoryPage = !!pathname?.match(/\/inventory($|\/|\?)/);
-  const isAimaPage = !isCrcPage && !isFairnessPage && !isTeamPage && !isSettingsPage && !isInventoryPage && !!pathname?.match(/\/assess\/[^/]+/);
-  return {
-    isCrcPage,
-    isFairnessPage,
-    isFairnessRootPage,
-    isApiEndpointPage,
-    isVulnerabilityPage,
-    isDatasetTestingPage,
-    isFairnessOptionsPage,
-    isTeamPage,
-    isSettingsPage,
-    isInventoryPage,
-    isAimaPage,
-  };
 };
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
@@ -251,13 +229,17 @@ const DomainTreeItem = ({
       >
         <IconChevronRight
           className={cn(
-            "h-3.5 w-3.5 transition-transform text-muted-foreground group-hover/domain:text-foreground",
+            "h-3.5 w-3.5 transition-transform text-muted-foreground group-hover/domain:text-foreground shrink-0",
             isDomainExpanded && "rotate-90"
           )}
         />
+        {(() => {
+          const Icon = getDomainIcon(domain.title);
+          return <Icon className="w-3.5 h-3.5 shrink-0 text-[var(--section-free)]" />;
+        })()}
         <span className={cn(
-          "font-semibold text-xs truncate ml-0.5",
-          isDomainActive && !currentPracticeId ? "text-foreground" : "text-foreground/80"
+          "font-semibold text-xs truncate ml-1 flex-1 min-w-0",
+          isDomainActive && !currentPracticeId ? "text-foreground font-semibold" : "text-foreground/80"
         )}>
           {domain.title}
         </span>
@@ -277,7 +259,7 @@ const DomainTreeItem = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-1 gap-0.5">
+            <SidebarMenuSub className="mt-1 gap-0.5">
               {domain.practices.map((practice) => {
                 const isPracticeActive = isDomainActive && currentPracticeId === practice.id;
                 const isPracticeSelectedOnly = isPracticeActive && (currentQuestionIndex === null || currentQuestionIndex === undefined);
@@ -287,10 +269,9 @@ const DomainTreeItem = ({
                     <SidebarMenuSubButton
                       onClick={() => onPracticeClick(domain.id, practice.id)}
                       isActive={isPracticeSelectedOnly}
-                      className="group/practice h-7 px-2"
+                      className="group/practice h-7 px-1.5"
                     >
-                      <IconFolder className="h-3 w-3 text-muted-foreground group-hover/practice:text-foreground" />
-                      <span className="text-[12px] truncate ml-1.5 text-foreground/70 group-hover/practice:text-foreground">
+                      <span className="text-[12px] truncate pl-1 flex-1 min-w-0 text-foreground/70 group-hover/practice:text-foreground">
                         {practice.title}
                       </span>
                       <CompactProgress
@@ -302,7 +283,7 @@ const DomainTreeItem = ({
                     </SidebarMenuSubButton>
 
                     {isPracticeActive && practice.questions && practice.questions.length > 0 && (
-                      <SidebarMenuSub className="border-l border-sidebar-border/50 ml-2 pl-2.5 mt-0.5 gap-0">
+                      <SidebarMenuSub className="border-sidebar-border/50 mt-0.5 gap-0">
                         {practice.questions.map((q, qIdx) => {
                           const isQuestionActive = isPracticeActive && currentQuestionIndex === qIdx;
                           return (
@@ -318,7 +299,7 @@ const DomainTreeItem = ({
                                   <IconCircle className={cn("h-3 w-3", isQuestionActive ? "text-primary" : "text-muted-foreground/40")} />
                                 )}
                                 <span className={cn(
-                                  "text-[11px] truncate ml-1.5",
+                                  "text-[11px] truncate ml-1 flex-1 min-w-0",
                                   isQuestionActive ? "text-foreground font-medium" : "text-muted-foreground group-hover/question:text-foreground"
                                 )}>
                                   Q{qIdx + 1}: {q.question}
@@ -348,7 +329,7 @@ function SidebarContentComponent() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { user, isAuthenticated, logout } = useAuth();
-  const { setOpenMobile, state } = useSidebar();
+  const { setOpenMobile, state, setOpen } = useSidebar();
   const { invitations: myInvitations, fetchInvitations, removeInvitation, clearInvitations } = useNotificationStore();
   const [decliningTokens, setDecliningTokens] = useState<Set<string>>(new Set());
   const fetchInProgress = useRef(false);
@@ -484,7 +465,7 @@ function SidebarContentComponent() {
           return {
             ...q,
             index: idx,
-            isAnswered: answers ? !!answers[answerKey] : false,
+            isAnswered: answers ? (answers[answerKey] !== undefined && answers[answerKey] !== null) : false,
           };
         });
 
@@ -598,6 +579,13 @@ function SidebarContentComponent() {
   useEffect(() => {
     setOpenMobile(false);
   }, [pathname, setOpenMobile]);
+
+  // Auto-expand sidebar when on any AIMA page
+  useEffect(() => {
+    if (routeFlags.isAimaPage) {
+      setOpen(true);
+    }
+  }, [routeFlags.isAimaPage, setOpen]);
 
   // Keep AIMA Assessment toggle closed by default for admin and premium accounts
   useEffect(() => {
@@ -871,12 +859,12 @@ function SidebarContentComponent() {
                         disabled={item.disabled}
                         tooltip={item.label}
                         className={cn(
-                          "transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
+                          "sidebar-btn-dashboard transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
                           active && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:rounded-md font-semibold rounded-l-none rounded-r-md"
                         )}
                       >
                         <Link href={item.disabled ? "#" : item.href} className="flex items-center gap-2 w-full group-data-[collapsible=icon]:justify-center">
-                          <Icon className={cn("size-5 shrink-0 transition-colors duration-200", active ? "text-primary" : "text-muted-foreground/80")} />
+                          <Icon className="size-5 shrink-0 text-primary" />
                           {state === "expanded" && (
                             <span className={cn("text-sm font-medium", active ? "text-foreground font-semibold" : "text-foreground/80")}>{item.label}</span>
                           )}
@@ -898,7 +886,7 @@ function SidebarContentComponent() {
                           setIsFreeExpanded(!isFreeExpanded);
                         }}
                         className={cn(
-                          "transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
+                          "sidebar-btn-free transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
                           isFreeActive && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:rounded-md font-semibold rounded-l-none rounded-r-md"
                         )}
                         tooltip="Free"
@@ -926,7 +914,7 @@ function SidebarContentComponent() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                            <SidebarMenuSub className="mt-0.5 gap-0.5">
                               {/* AIMA Assessment — nested inside Free */}
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
@@ -940,11 +928,11 @@ function SidebarContentComponent() {
                                   }}
                                   isActive={isAimaActive}
                                   className={cn(
-                                    "group/aima h-8 px-2 transition-all duration-200",
+                                    "sidebar-btn-free group/aima h-8 px-2 transition-all duration-200",
                                     isAimaActive && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 font-semibold rounded-l-none rounded-r-md"
                                   )}
                                 >
-                                  <IconClipboardCheck className={cn("size-5 transition-colors duration-200", isAimaActive ? "text-primary" : "text-blue-500")} />
+                                  <IconClipboardCheck className="size-5 shrink-0 text-[var(--section-free)]" />
                                   <span className={cn("text-[13px] truncate ml-1", isAimaActive ? "text-foreground font-semibold" : "text-foreground/80")}>
                                     AIMA Assessment
                                   </span>
@@ -965,7 +953,7 @@ function SidebarContentComponent() {
                                       transition={{ duration: 0.2 }}
                                       className="overflow-hidden"
                                     >
-                                      <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                                      <SidebarMenuSub className="mt-0.5 gap-0.5">
                                         {displayDomains.map((domain: any) => (
                                           <DomainTreeItem
                                             key={domain.id}
@@ -1006,7 +994,7 @@ function SidebarContentComponent() {
                           setIsPremiumFeaturesExpanded(!isPremiumFeaturesExpanded);
                         }}
                         className={cn(
-                          "transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
+                          "sidebar-btn-premium transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
                           isPremiumActive && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:rounded-md font-semibold rounded-l-none rounded-r-md"
                         )}
                         tooltip="Premium Features"
@@ -1034,7 +1022,7 @@ function SidebarContentComponent() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                            <SidebarMenuSub className="mt-0.5 gap-0.5">
                               {/* AI Vulnerability Assessment */}
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
@@ -1043,11 +1031,11 @@ function SidebarContentComponent() {
                                     : openSubscriptionModal("Unlock Premium to Access AI Vulnerability Assessment", "Upgrade to premium to unlock this feature and many more advanced capabilities.")}
                                   isActive={routeFlags.isVulnerabilityPage}
                                   className={cn(
-                                    "group/premium-btn h-8 px-2 transition-all duration-200",
+                                    "sidebar-btn-premium group/premium-btn h-8 px-2 transition-all duration-200",
                                     routeFlags.isVulnerabilityPage && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 font-semibold rounded-l-none rounded-r-md"
                                   )}
                                 >
-                                  <IconShield className={cn("size-5 transition-colors duration-200", routeFlags.isVulnerabilityPage ? "text-primary" : "text-blue-500")} />
+                                  <IconShield className="size-5 shrink-0 text-[var(--section-premium)]" />
                                   <span className={cn("text-[13px] truncate ml-1", routeFlags.isVulnerabilityPage ? "text-foreground font-semibold" : "text-foreground/80")}>
                                     AI Vulnerability Assessment
                                   </span>
@@ -1066,12 +1054,12 @@ function SidebarContentComponent() {
                                   }}
                                   isActive={routeFlags.isCrcPage}
                                   className={cn(
-                                    "group/premium-btn h-8 px-2 transition-all duration-200",
+                                    "sidebar-btn-premium group/premium-btn h-8 px-2 transition-all duration-200",
                                     routeFlags.isCrcPage && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 font-semibold rounded-l-none rounded-r-md"
                                   )}
                                 >
                                   <IconChevronRight className={cn("h-3.5 w-3.5 transition-transform text-muted-foreground shrink-0", isCrcExpanded && "rotate-90")} />
-                                  <IconShieldCheck className={cn("size-5 transition-colors duration-200", routeFlags.isCrcPage ? "text-primary" : "text-emerald-500")} />
+                                  <IconShieldCheck className="size-5 shrink-0 text-[var(--section-premium)]" />
                                   <span className={cn("font-medium text-[13px] truncate ml-1", routeFlags.isCrcPage ? "text-foreground font-semibold" : "text-foreground/80")}>
                                     CRC
                                   </span>
@@ -1086,7 +1074,7 @@ function SidebarContentComponent() {
                                       exit={{ height: 0, opacity: 0 }}
                                       className="overflow-hidden"
                                     >
-                                      <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                                      <SidebarMenuSub className="mt-0.5 gap-0.5">
                                         {/* Dashboard */}
                                         <SidebarMenuSubItem>
                                           <SidebarMenuSubButton
@@ -1094,7 +1082,7 @@ function SidebarContentComponent() {
                                             className="h-7 px-2 group/cat"
                                             isActive={pathname?.endsWith("/crc/dashboard") || false}
                                           >
-                                            <IconDashboard className="h-3 w-3 text-muted-foreground group-hover/cat:text-foreground" />
+                                            <IconDashboard className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--section-premium)" }} />
                                             <span className={cn("text-[12px] truncate ml-1.5", pathname?.endsWith("/crc/dashboard") ? "text-foreground font-medium" : "text-foreground/70")}>
                                               Readiness Dashboard
                                             </span>
@@ -1107,7 +1095,7 @@ function SidebarContentComponent() {
                                             className="h-7 px-2 group/cat"
                                             isActive={pathname?.endsWith("/crc/risks") || false}
                                           >
-                                            <IconClipboardCheck className="h-3 w-3 text-muted-foreground group-hover/cat:text-foreground" />
+                                            <IconClipboardCheck className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--section-premium)" }} />
                                             <span className={cn("text-[12px] truncate ml-1.5", pathname?.endsWith("/crc/risks") ? "text-foreground font-medium" : "text-foreground/70")}>
                                               AI Risk Register
                                             </span>
@@ -1145,7 +1133,7 @@ function SidebarContentComponent() {
                                                   className="h-7 px-2 flex-1 group/cat"
                                                   isActive={currentCategory === cat}
                                                 >
-                                                  <IconFolder className="h-3 w-3 text-muted-foreground group-hover/cat:text-foreground" />
+                                                  <IconFolder className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--section-premium)" }} />
                                                   <span className={cn("text-[12px] truncate ml-1.5", currentCategory === cat ? "text-foreground font-medium" : "text-foreground/70")}>
                                                     {cat}
                                                   </span>
@@ -1154,7 +1142,7 @@ function SidebarContentComponent() {
                                               </div>
 
                                               {isCatExpanded && catControls.length > 0 && (
-                                                <SidebarMenuSub className="border-l border-sidebar-border/50 ml-2 pl-2.5 mt-0.5 gap-0">
+                                                <SidebarMenuSub className="border-sidebar-border/50 mt-0.5 gap-0">
                                                   {catControls.map((control: CRCControl) => {
                                                     const isAnswered = crcResponses[control.id] !== undefined;
                                                     return (
@@ -1195,11 +1183,11 @@ function SidebarContentComponent() {
                                     : openSubscriptionModal("Unlock Premium to Access AI Component Inventory")}
                                   isActive={routeFlags.isInventoryPage}
                                   className={cn(
-                                    "group/premium-btn h-8 px-2 transition-all duration-200",
+                                    "sidebar-btn-premium group/premium-btn h-8 px-2 transition-all duration-200",
                                     routeFlags.isInventoryPage && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 font-semibold rounded-l-none rounded-r-md"
                                   )}
                                 >
-                                  <IconTable className={cn("size-5 transition-colors duration-200", routeFlags.isInventoryPage ? "text-primary" : "text-blue-500")} />
+                                  <IconTable className="size-5 shrink-0 text-[var(--section-premium)]" />
                                   <span className={cn("text-[13px] truncate ml-1", routeFlags.isInventoryPage ? "text-foreground font-semibold" : "text-foreground/80")}>
                                     AI Component Inventory
                                   </span>
@@ -1216,12 +1204,12 @@ function SidebarContentComponent() {
                                   }}
                                   isActive={routeFlags.isFairnessPage && !routeFlags.isVulnerabilityPage}
                                   className={cn(
-                                    "group/premium-btn h-8 px-2 transition-all duration-200",
+                                    "sidebar-btn-premium group/premium-btn h-8 px-2 transition-all duration-200",
                                     (routeFlags.isFairnessPage && !routeFlags.isVulnerabilityPage) && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 font-semibold rounded-l-none rounded-r-md"
                                   )}
                                 >
                                   <IconChevronRight className={cn("h-3.5 w-3.5 transition-transform text-muted-foreground shrink-0", isFairnessExpanded && "rotate-90")} />
-                                  <IconScale className={cn("size-5 transition-colors duration-200", (routeFlags.isFairnessPage && !routeFlags.isVulnerabilityPage) ? "text-primary" : "text-amber-500")} />
+                                  <IconScale className="size-5 shrink-0 text-[var(--section-premium)]" />
                                   <span className={cn("font-medium text-[13px] truncate ml-1", (routeFlags.isFairnessPage && !routeFlags.isVulnerabilityPage) ? "text-foreground font-semibold" : "text-foreground/80")}>
                                     Bias & Fairness Testing
                                   </span>
@@ -1235,13 +1223,14 @@ function SidebarContentComponent() {
                                       exit={{ height: 0, opacity: 0 }}
                                       className="overflow-hidden"
                                     >
-                                      <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                                      <SidebarMenuSub className="mt-0.5 gap-0.5">
                                         <SidebarMenuSubItem>
                                           <SidebarMenuSubButton
                                             onClick={() => premiumStatus ? handleProjectNav(`/fairness-bias`) : openSubscriptionModal("Unlock Premium to Access Manual Prompt Testing")}
                                             className="h-7 px-2 group/fairness"
                                             isActive={(routeFlags.isFairnessRootPage || routeFlags.isFairnessPage) && !routeFlags.isApiEndpointPage && !routeFlags.isDatasetTestingPage && !routeFlags.isFairnessOptionsPage}
                                           >
+                                            <IconMessageReport className="h-3.5 w-3.5 text-[var(--section-premium)] shrink-0" />
                                             <span className={cn("text-[12px] truncate ml-1.5",
                                               (routeFlags.isFairnessRootPage || (routeFlags.isFairnessPage && !routeFlags.isApiEndpointPage && !routeFlags.isDatasetTestingPage && !routeFlags.isFairnessOptionsPage))
                                                 ? "text-foreground font-medium" : "text-foreground/70")}>
@@ -1255,6 +1244,7 @@ function SidebarContentComponent() {
                                             className="h-7 px-2 group/fairness"
                                             isActive={routeFlags.isApiEndpointPage}
                                           >
+                                            <IconApi className="h-3.5 w-3.5 text-[var(--section-premium)] shrink-0" />
                                             <span className={cn("text-[12px] truncate ml-1.5", routeFlags.isApiEndpointPage ? "text-foreground font-medium" : "text-foreground/70")}>
                                               API Automated Testing
                                             </span>
@@ -1266,6 +1256,7 @@ function SidebarContentComponent() {
                                             className="h-7 px-2 group/fairness"
                                             isActive={routeFlags.isDatasetTestingPage}
                                           >
+                                            <IconDatabase className="h-3.5 w-3.5 text-[var(--section-premium)] shrink-0" />
                                             <span className={cn("text-[12px] truncate ml-1.5", routeFlags.isDatasetTestingPage ? "text-foreground font-medium" : "text-foreground/70")}>
                                               Dataset Testing
                                             </span>
@@ -1300,7 +1291,7 @@ function SidebarContentComponent() {
                           }
                         }}
                         className={cn(
-                          "transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
+                          "sidebar-btn-settings transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
                           isProjectSettingsActive && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:rounded-md font-semibold rounded-l-none rounded-r-md"
                         )}
                         tooltip="Project Settings"
@@ -1328,17 +1319,17 @@ function SidebarContentComponent() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                            <SidebarMenuSub className="mt-0.5 gap-0.5">
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
                                   onClick={() => handleProjectNav(`/settings`)}
                                   isActive={routeFlags.isSettingsPage}
                                   className={cn(
-                                    "h-8 px-2 transition-all duration-200",
+                                    "sidebar-btn-settings h-8 px-2 transition-all duration-200",
                                     routeFlags.isSettingsPage && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 font-semibold rounded-l-none rounded-r-md"
                                   )}
                                 >
-                                  <IconBriefcase className={cn("size-5 transition-colors duration-200", routeFlags.isSettingsPage ? "text-primary" : "text-muted-foreground")} />
+                                  <IconBriefcase className="size-5 shrink-0 text-[var(--section-settings)]" />
                                   <span className={cn("text-[13px] truncate ml-1", routeFlags.isSettingsPage ? "text-foreground font-semibold" : "text-foreground/80")}>
                                     Project Information
                                   </span>
@@ -1349,11 +1340,11 @@ function SidebarContentComponent() {
                                   onClick={() => handleProjectNav(`/team`)}
                                   isActive={routeFlags.isTeamPage}
                                   className={cn(
-                                    "h-8 px-2 transition-all duration-200",
+                                    "sidebar-btn-settings h-8 px-2 transition-all duration-200",
                                     routeFlags.isTeamPage && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 font-semibold rounded-l-none rounded-r-md"
                                   )}
                                 >
-                                  <IconUsers className={cn("size-5 transition-colors duration-200", routeFlags.isTeamPage ? "text-primary" : "text-muted-foreground")} />
+                                  <IconUsers className="size-5 shrink-0 text-[var(--section-settings)]" />
                                   <span className={cn("text-[13px] truncate ml-1", routeFlags.isTeamPage ? "text-foreground font-semibold" : "text-foreground/80")}>
                                     Teams
                                   </span>
@@ -1376,7 +1367,7 @@ function SidebarContentComponent() {
           {/* Admin Navigation */}
           {adminNavItems.length > 0 && (
             <SidebarGroup>
-              <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60 px-2">Admin</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--section-admin)] px-2">Admin</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {adminNavItems.map((item) => {
@@ -1389,12 +1380,12 @@ function SidebarContentComponent() {
                           isActive={active}
                           tooltip={item.label}
                           className={cn(
-                            "transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
+                            "sidebar-btn-admin transition-all duration-250 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:[&>svg]:!size-[22px] group-data-[collapsible=icon]:mx-auto",
                             active && "border-l-[3px] border-primary bg-sidebar-accent/60 text-sidebar-accent-foreground pl-1.5 group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:rounded-md font-semibold rounded-l-none rounded-r-md"
                           )}
                         >
                           <Link href={item.href} className="flex items-center gap-2 w-full group-data-[collapsible=icon]:justify-center">
-                            <Icon className={cn("size-5 shrink-0 transition-colors duration-200", active ? "text-primary" : "text-muted-foreground/80")} />
+                            <Icon className="size-5 shrink-0 text-[var(--section-admin)]" />
                             {state === "expanded" && (
                               <span className={cn("text-sm font-medium", active ? "text-foreground font-semibold" : "text-foreground/80")}>{item.label}</span>
                             )}

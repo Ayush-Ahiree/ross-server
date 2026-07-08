@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { showToast } from "../../lib/toast";
@@ -18,10 +18,20 @@ import {
   IconAlertCircle,
   IconLoader2,
   IconFolder,
-  IconRobot,
+  IconFolders,
   IconBriefcase,
+  IconLayoutDashboard,
   IconDotsVertical,
   IconPencil,
+  IconCalendar,
+  IconInbox,
+  IconUser,
+  IconShield,
+  IconChartBar,
+  IconPlayerPlay,
+  IconCpu,
+  IconUserCheck,
+  IconFilter,
 } from "@tabler/icons-react";
 import { CardSkeleton, DashboardSkeleton } from "../../components/Skeleton";
 import SubscriptionModal from "../../components/features/subscriptions/SubscriptionModal";
@@ -44,6 +54,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,11 +67,12 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import ProjectEditForm from "@/components/features/projects/ProjectEditForm";
-import { INDUSTRY_OPTIONS, AI_SYSTEM_TYPES, isPremiumStatus } from "@/lib/constants";
+import { INDUSTRY_OPTIONS, AI_SYSTEM_TYPES, isPremiumStatus, CARD_THEMES } from "@/lib/constants";
 import { getReportRoute } from "@/lib/reportRoute";
 
 const POST_CHECKOUT_RETURN_URL_KEY = "postCheckoutReturnUrl";
 const SKELETON_COUNT = 5;
+
 
 export default function DashboardPage() {
   const { user, isAuthenticated, logout, refreshUser } = useAuth();
@@ -70,6 +82,33 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'created_desc' | 'created_asc' | 'name_asc' | 'name_desc'>('created_desc');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'not_started' | 'in_progress' | 'completed'>('all');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+
+  const filteredProjects = useMemo(() => {
+    let result = [...projects];
+    if (filterStatus !== 'all') {
+      result = result.filter(p => p.status === filterStatus);
+    }
+    
+    result.sort((a, b) => {
+      if (sortBy === 'name_asc') {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'name_desc') {
+        return b.name.localeCompare(a.name);
+      } else if (sortBy === 'created_asc') {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateA - dateB;
+      } else { // created_desc
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      }
+    });
+    return result;
+  }, [projects, sortBy, filterStatus]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newProject, setNewProject] = useState({
     name: "",
@@ -237,13 +276,13 @@ export default function DashboardPage() {
   // Fix Radix UI Dialog pointer-events lock bug when modal states change
   useEffect(() => {
     if (typeof document === "undefined") return;
-    if (!deletingProjectId && !editingProject && !showCreateForm && !showPathSelection && !showSubscriptionModal) {
+    if (!deletingProjectId && !editingProject && !showCreateForm && !showPathSelection && !showSubscriptionModal && !showFilterModal) {
       const timer = setTimeout(() => {
         document.body.style.pointerEvents = "";
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [deletingProjectId, editingProject, showCreateForm, showPathSelection, showSubscriptionModal]);
+  }, [deletingProjectId, editingProject, showCreateForm, showPathSelection, showSubscriptionModal, showFilterModal]);
 
   useEffect(() => {
     if (authLoading) {
@@ -377,41 +416,38 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-full flex flex-col bg-background">
-      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="py-6">
-          {/* Page Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex-1"
-            >
-              <h1 className="text-4xl font-bold mb-2">
-                <span className="gradient-text">Dashboard</span>
-              </h1>
-              <div>
-                <p className="text-muted-foreground font-medium">
-                  Welcome back, <span className="text-primary font-bold">{[user?.name, user?.lastName].filter(Boolean).join(" ")}</span>! Manage your AI maturity assessments
-                </p>
-              </div>
-            </motion.div>
-            {/* Action Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="flex justify-end items-center"
-            >
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                className="btn-primary h-12 px-6"
-              >
-                <IconPlus className="w-5 h-5 mr-2" />
-                New Project
-              </Button>
-            </motion.div>
+      {/* Page Header inside a sticky header bar */}
+      <header className="sticky top-0 z-30 w-full bg-white dark:bg-card border-b border-border shadow-xs backdrop-blur-md">
+        <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full">
+          <div className="flex items-center gap-2">
+            <IconLayoutDashboard className="w-6 h-6 text-primary shrink-0" />
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
           </div>
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="btn-primary h-9 px-4 flex items-center gap-1.5 text-xs font-bold"
+          >
+            <IconPlus className="w-4 h-4" />
+            <IconFolder className="w-4 h-4" />
+            <span>New Project</span>
+          </Button>
+        </div>
+      </header>
+
+      <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-6">
+        <div className="py-2">
+          {/* Welcome User Section */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mb-8"
+          >
+            <p className="text-muted-foreground font-medium flex items-center gap-1.5 flex-wrap">
+              <IconUserCheck className="w-4.5 h-4.5 text-primary/70 shrink-0" />
+              <span>Welcome back, <span className="text-primary font-bold">{[user?.name, user?.lastName].filter(Boolean).join(" ")}</span>! Manage your AI maturity assessments</span>
+            </p>
+          </motion.div>
 
           {/* Trial Expired Banner */}
           <TrialExpiredBanner />
@@ -460,9 +496,10 @@ export default function DashboardPage() {
               transition={{ duration: 0.5, delay: 0.3 }}
               className="mb-8"
             >
-              <h2 className="text-2xl font-bold mb-4 text-foreground flex items-center gap-2">
-                Pending Invitations
-                <Badge variant="secondary" className="bg-primary/10 text-primary">
+              <h2 className="text-2xl font-bold mb-4 text-foreground flex items-center gap-2.5">
+                <IconInbox className="w-6 h-6 text-primary shrink-0" />
+                <span>Pending Invitations</span>
+                <Badge variant="secondary" className="bg-primary/10 text-primary font-bold">
                   {myInvitations.length}
                 </Badge>
               </h2>
@@ -472,34 +509,41 @@ export default function DashboardPage() {
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle className="text-lg font-bold">{invitation.project.name}</CardTitle>
-                          <CardDescription className="mt-1">
-                            Invited by <span className="font-semibold text-foreground">{invitation.inviter?.name || "Someone"}</span>
+                          <CardTitle className="text-lg font-bold flex items-center gap-2">
+                            <IconFolder className="w-5 h-5 text-primary shrink-0" />
+                            <span>{invitation.project.name}</span>
+                          </CardTitle>
+                          <CardDescription className="mt-1.5 flex items-center gap-1.5 text-muted-foreground/80">
+                            <IconUser className="w-3.5 h-3.5" />
+                            <span>Invited by <span className="font-semibold text-foreground">{invitation.inviter?.name || "Someone"}</span></span>
                           </CardDescription>
                         </div>
-                        <Badge variant="outline" className="bg-background">
-                          {invitation.role}
+                        <Badge variant="outline" className="bg-muted flex items-center gap-1">
+                          <IconShield className="w-3 h-3 text-muted-foreground" />
+                          <span>{invitation.role}</span>
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardFooter className="flex gap-3 pt-2 pb-4">
                       <Button
-                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-1.5"
                         onClick={() => router.push(`/invite/accept?token=${encodeURIComponent(invitation.token)}`)}
                       >
-                        Accept
+                        <IconCircleCheck className="w-4 h-4" />
+                        <span>Accept</span>
                       </Button>
                       <Button
                         variant="outline"
-                        className="flex-1 border-destructive/20 text-destructive hover:bg-destructive/10"
+                        className="flex-1 border-destructive/20 text-destructive hover:bg-destructive/10 flex items-center justify-center gap-1.5"
                         onClick={() => handleDeclineInvitation(invitation.token)}
                         disabled={decliningTokens.has(invitation.token)}
                       >
                         {decliningTokens.has(invitation.token) ? (
                           <IconLoader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          "Decline"
+                          <IconTrash className="w-4 h-4" />
                         )}
+                        <span>Decline</span>
                       </Button>
                     </CardFooter>
                   </Card>
@@ -515,9 +559,26 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <h2 className="text-2xl font-bold mb-6 text-foreground">
-              Your Projects
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+                <IconFolders className="w-6 h-6 text-primary shrink-0" />
+                <span>Your Projects</span>
+              </h2>
+              {projects.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilterModal(true)}
+                  className="h-9 px-3 flex items-center gap-1.5 text-xs font-semibold bg-white dark:bg-zinc-900 border-border/60 hover:bg-muted/50 rounded-lg shadow-2xs transition-all duration-200"
+                >
+                  <IconFilter className="w-4 h-4 text-muted-foreground" />
+                  <span>Filter & Sort</span>
+                  {(filterStatus !== 'all' || sortBy !== 'created_desc') && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary ml-0.5" />
+                  )}
+                </Button>
+              )}
+            </div>
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
@@ -543,128 +604,162 @@ export default function DashboardPage() {
                   Create Your First Project
                 </Button>
               </div>
+            ) : filteredProjects.length === 0 ? (
+              <div className="text-center py-12 border border-dashed border-border/60 rounded-xl bg-muted/10">
+                <IconFilter className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                <h3 className="text-sm font-semibold mb-1">No matching projects</h3>
+                <p className="text-xs text-muted-foreground mb-4">No projects match the selected status filter.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFilterStatus('all');
+                    setSortBy('created_desc');
+                  }}
+                  className="h-8 px-3 text-xs font-semibold"
+                >
+                  Clear Filters
+                </Button>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {projects.map((project, index) => (
-                  <motion.div
-                    key={project.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ y: -5 }}
-                  >
-                    <Card className={`h-full hover:shadow-xl transition-all duration-300 ${["bg-chart-1/10", "bg-chart-2/10", "bg-chart-3/10", "bg-chart-4/10", "bg-chart-5/10"][index % 5]}`}>
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start w-full min-w-0">
-                          <div className="flex-1 mr-2 min-w-0">
-                            <CardTitle className="text-lg mb-1 flex items-center justify-between w-full min-w-0">
-                              <span className="truncate pr-2 min-w-0">{project.name}</span>
-                              {project.user_id && user?.id && project.user_id !== user.id && (
-                                <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 font-medium bg-primary/10 text-primary border-primary/20 shrink-0">
-                                  Shared
-                                </Badge>
-                              )}
-                            </CardTitle>
-                            <div className="flex items-center gap-2">
-                              {project.role && project.role !== 'OWNER' && (
-                                <Badge variant="secondary" className="text-[10px] h-4 px-1.5 uppercase font-bold tracking-wider opacity-70">
-                                  {project.role}
-                                </Badge>
-                              )}
-                              {project.status === 'completed' ? (
-                                <div className="flex items-center gap-3">
-                                  <Link
-                                    href={getProjectReportHref(project.id)}
-                                    className="inline-flex items-center gap-1 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
-                                  >
-                                    <span>Report</span>
-                                    <IconArrowRight className="w-3.5 h-3.5" />
-                                  </Link>
-                                  <span className="text-border">|</span>
-                                  <Link
-                                    href={getProjectEditHref(project.id)}
-                                    className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-                                  >
-                                    <span>Edit</span>
-                                  </Link>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (project.status === "not_started") {
-                                      setPathSelectionProjectId(project.id);
-                                      setShowPathSelection(true);
-                                    } else {
-                                      router.push(getProjectEditHref(project.id));
-                                    }
-                                  }}
-                                  className="inline-flex items-center gap-1 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
-                                >
-                                  <span>
-                                    {project.status === 'in_progress' ? 'Continue' : 'Start'}
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredProjects.map((project, index) => {
+                  const theme = CARD_THEMES[index % CARD_THEMES.length];
+                  return (
+                    <motion.div
+                      key={project.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ y: -5 }}
+                    >
+                      <Card className={`h-full flex flex-col justify-between hover:shadow-xl transition-all duration-300 border ${theme.border} ${theme.shadow} ${
+                        ["card-google-indigo", "card-google-red", "card-google-yellow", "card-google-green", "card-google-purple"][index % 5]
+                      }`}>
+                        <CardHeader className="pb-3 flex-none">
+                          <div className="flex justify-between items-start w-full min-w-0">
+                            <div className="flex-1 mr-2 min-w-0">
+                              <CardTitle className="text-lg mb-1.5 flex items-center justify-between w-full min-w-0">
+                                <span className="flex items-center gap-2 min-w-0 font-bold pr-2 text-foreground">
+                                  <IconFolder className="w-5 h-5 shrink-0 text-foreground/80" />
+                                  <span className="truncate">{project.name}</span>
+                                </span>
+                                {project.user_id && user?.id && project.user_id !== user.id && (
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${theme.badge}`}>
+                                    Shared
                                   </span>
-                                  <IconArrowRight className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                              {project.created_at && (
-                                <>
-                                  <span className="text-muted-foreground/30 select-none">•</span>
-                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                    Created on {formatDate(project.created_at)}
+                                )}
+                              </CardTitle>
+                              <div className="flex items-center gap-1.5 mt-1.5 w-full min-w-0 flex-nowrap">
+                                <span className={`text-[10px] py-1 px-2.5 rounded-full font-semibold flex items-center gap-1 shrink min-w-0 ${theme.badge}`}>
+                                  <IconCpu className="w-3.5 h-3.5 shrink-0" />
+                                  <span className="truncate">{project.ai_system_type || "General AI System"}</span>
+                                </span>
+                                {project.created_at && (
+                                  <span className={`text-[10px] py-1 px-2.5 rounded-full font-semibold flex items-center gap-1.5 shrink-0 ${theme.badge}`}>
+                                    <IconCalendar className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Created: {formatDate(project.created_at)}</span>
                                   </span>
-                                </>
-                              )}
+                                )}
+                                {project.role && project.role !== 'OWNER' && (
+                                  <span className={`text-[10px] py-1 px-2.5 rounded-full uppercase font-bold tracking-wider flex items-center gap-1 shrink-0 ${theme.badgeRole}`}>
+                                    <IconShield className="w-3 h-3 shrink-0" />
+                                    <span>{project.role}</span>
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <IconDotsVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {(project.role === 'OWNER' || project.role === 'EDITOR' || project.user_id === user?.id) && (
-                                <DropdownMenuItem onClick={() => handleEditProject(project)}>
-                                  <IconPencil className="mr-2 h-4 w-4" />
-                                  <span>Edit</span>
-                                </DropdownMenuItem>
-                              )}
-
-                              {(project.role === 'OWNER' || project.user_id === user?.id) && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => setDeletingProjectId(project.id)}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <IconTrash className="mr-2 h-4 w-4" />
-                                    <span>Delete</span>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <span className="sr-only">Open menu</span>
+                                  <IconDotsVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {(project.role === 'OWNER' || project.role === 'EDITOR' || project.user_id === user?.id) && (
+                                  <DropdownMenuItem onClick={() => handleEditProject(project)}>
+                                    <IconPencil className="mr-2 h-4 w-4" />
+                                    <span>Edit</span>
                                   </DropdownMenuItem>
-                                </>
-                              )}
+                                )}
 
-                              {(!project.role || project.role === 'VIEWER') && project.user_id !== user?.id && (
-                                <div className="px-2 py-1.5 text-xs text-muted-foreground italic">
-                                  Read-only access
-                                </div>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <CardDescription className="mt-2 text-sm line-clamp-2 min-h-[40px]">
-                          {project.description || "No description provided"}
-                        </CardDescription>
-                      </CardHeader>
+                                {(project.role === 'OWNER' || project.user_id === user?.id) && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => setDeletingProjectId(project.id)}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <IconTrash className="mr-2 h-4 w-4" />
+                                      <span>Delete</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
 
-                      <CardContent className="pb-4">
-                        <Badge variant="secondary" className="font-normal">
-                          {project.ai_system_type || "General AI System"}
-                        </Badge>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
+                                {(!project.role || project.role === 'VIEWER') && project.user_id !== user?.id && (
+                                  <div className="px-2 py-1.5 text-xs text-muted-foreground italic">
+                                    Read-only access
+                                  </div>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                          <CardDescription className="mt-3 text-sm line-clamp-3 min-h-[48px] text-muted-foreground/90">
+                            {project.description || "No description provided"}
+                          </CardDescription>
+                        </CardHeader>
+
+                        <CardContent className="py-2 flex-1 flex flex-col justify-end" />
+
+                        <CardFooter className="pt-3 pb-5 flex justify-end gap-2 border-t border-border/55 flex-none bg-muted/5">
+                          {project.status === 'completed' ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => router.push(getProjectEditHref(project.id))}
+                                className="h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1 bg-transparent hover:bg-transparent shadow-none border-0 text-foreground/80 hover:text-foreground"
+                              >
+                                <IconPencil className="w-3.5 h-3.5" />
+                                <span>Edit Details</span>
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => router.push(getProjectReportHref(project.id))}
+                                className={`h-8 px-3.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs ${theme.btnSecondary}`}
+                              >
+                                <IconChartBar className="w-3.5 h-3.5" />
+                                <span>View Report</span>
+                                <IconArrowRight className="w-3.5 h-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (project.status === "not_started") {
+                                  setPathSelectionProjectId(project.id);
+                                  setShowPathSelection(true);
+                                } else {
+                                  router.push(getProjectEditHref(project.id));
+                                }
+                              }}
+                              className={`h-8 px-4 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs ${theme.btnSecondary}`}
+                            >
+                              <IconPlayerPlay className="w-3 h-3" />
+                              <span>
+                                {project.status === 'in_progress' ? 'Continue Assessment' : 'Start Assessment'}
+                              </span>
+                              <IconArrowRight className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
+                        </CardFooter>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
               </div>
             )}
           </motion.div>
@@ -682,6 +777,94 @@ export default function DashboardPage() {
         title="Unlock Premium to Access Multiple Projects"
         description="Upgrade to premium to create unlimited projects and unlock many more advanced capabilities."
       />
+
+      {/* Filter & Sort Modal */}
+      <Dialog open={showFilterModal} onOpenChange={setShowFilterModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IconFilter className="w-5 h-5 text-primary shrink-0" />
+              <span>Filter & Sort Projects</span>
+            </DialogTitle>
+            <DialogDescription>
+              Refine the list of projects displayed on your dashboard.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-5 py-4">
+            {/* Sort Section */}
+            <div className="flex flex-col gap-2.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sort By</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: 'created_desc', label: 'Newest First' },
+                  { id: 'created_asc', label: 'Oldest First' },
+                  { id: 'name_asc', label: 'Name (A-Z)' },
+                  { id: 'name_desc', label: 'Name (Z-A)' },
+                ] satisfies { id: typeof sortBy; label: string }[]).map((opt) => (
+                  <Button
+                    key={opt.id}
+                    variant={sortBy === opt.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSortBy(opt.id)}
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold justify-start transition-all duration-200 ${
+                      sortBy === opt.id ? "bg-primary text-primary-foreground shadow-sm" : "border-border/60 hover:bg-muted/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filter Section */}
+            <div className="flex flex-col gap-2.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filter By Status</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: 'all', label: 'All Statuses' },
+                  { id: 'not_started', label: 'Not Started' },
+                  { id: 'in_progress', label: 'In Progress' },
+                  { id: 'completed', label: 'Completed' },
+                ] satisfies { id: typeof filterStatus; label: string }[]).map((opt) => (
+                  <Button
+                    key={opt.id}
+                    variant={filterStatus === opt.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterStatus(opt.id)}
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold justify-start transition-all duration-200 ${
+                      filterStatus === opt.id ? "bg-primary text-primary-foreground shadow-sm" : "border-border/60 hover:bg-muted/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center border-t border-border/20 pt-4 mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSortBy('created_desc');
+                setFilterStatus('all');
+              }}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground h-9 px-3"
+            >
+              Reset Defaults
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowFilterModal(false)}
+              className="bg-primary text-primary-foreground font-bold h-9 px-4 rounded-lg shadow-sm"
+            >
+              Apply Filters
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Path Selection Modal — shown when user clicks Start on a new project */}
       {pathSelectionProjectId && (
@@ -723,7 +906,10 @@ export default function DashboardPage() {
       <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <IconFolder className="w-5 h-5 text-primary" />
+              <span>Create New Project</span>
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateProject} className="space-y-4">
             <div className="space-y-2">
@@ -775,7 +961,7 @@ export default function DashboardPage() {
               >
                 <SelectTrigger>
                   <div className="flex items-center gap-2">
-                    <IconRobot className="h-4 w-4 text-muted-foreground" />
+                    <IconCpu className="h-4 w-4 text-muted-foreground" />
                     <SelectValue placeholder="Select AI System Type" />
                   </div>
                 </SelectTrigger>
