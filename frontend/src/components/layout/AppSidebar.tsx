@@ -156,6 +156,7 @@ const getRouteFlags = (pathname: string | null) => {
   const isSettingsPage = !!pathname?.match(/\/assess\/[^/]+\/settings($|\/|\?)/);
   const isInventoryPage = !!pathname?.match(/\/inventory($|\/|\?)/);
   const isAimaPage = !isCrcPage && !isFairnessPage && !isTeamPage && !isSettingsPage && !isInventoryPage && !!pathname?.match(/\/assess\/[^/]+/);
+  const isAimaQuestionPage = isAimaPage && !!pathname?.match(/\/assess\/[^/]+\/[^/]+\/[^/]+/);
   return {
     isCrcPage,
     isFairnessPage,
@@ -168,6 +169,7 @@ const getRouteFlags = (pathname: string | null) => {
     isSettingsPage,
     isInventoryPage,
     isAimaPage,
+    isAimaQuestionPage,
   };
 };
 
@@ -281,7 +283,7 @@ const DomainTreeItem = ({
           return <Icon className="w-3.5 h-3.5 shrink-0 text-[var(--section-free)]" />;
         })()}
         <span className={cn(
-          "font-semibold text-xs truncate ml-1",
+          "font-semibold text-xs truncate ml-1 flex-1 min-w-0",
           isDomainActive && !currentPracticeId ? "text-foreground font-semibold" : "text-foreground/80"
         )}>
           {domain.title}
@@ -302,7 +304,7 @@ const DomainTreeItem = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-1 gap-0.5">
+            <SidebarMenuSub className="mt-1 gap-0.5">
               {domain.practices.map((practice) => {
                 const isPracticeActive = isDomainActive && currentPracticeId === practice.id;
                 const isPracticeSelectedOnly = isPracticeActive && (currentQuestionIndex === null || currentQuestionIndex === undefined);
@@ -312,10 +314,9 @@ const DomainTreeItem = ({
                     <SidebarMenuSubButton
                       onClick={() => onPracticeClick(domain.id, practice.id)}
                       isActive={isPracticeSelectedOnly}
-                      className="group/practice h-7 px-2"
+                      className="group/practice h-7 px-1.5"
                     >
-                      <IconFolder className="h-3 w-3 text-[var(--section-free)] shrink-0" />
-                      <span className="text-[12px] truncate ml-1.5 text-foreground/70 group-hover/practice:text-foreground">
+                      <span className="text-[12px] truncate pl-1 flex-1 min-w-0 text-foreground/70 group-hover/practice:text-foreground">
                         {practice.title}
                       </span>
                       <CompactProgress
@@ -327,7 +328,7 @@ const DomainTreeItem = ({
                     </SidebarMenuSubButton>
 
                     {isPracticeActive && practice.questions && practice.questions.length > 0 && (
-                      <SidebarMenuSub className="border-l border-sidebar-border/50 ml-2 pl-2.5 mt-0.5 gap-0">
+                      <SidebarMenuSub className="border-sidebar-border/50 mt-0.5 gap-0">
                         {practice.questions.map((q, qIdx) => {
                           const isQuestionActive = isPracticeActive && currentQuestionIndex === qIdx;
                           return (
@@ -343,7 +344,7 @@ const DomainTreeItem = ({
                                   <IconCircle className={cn("h-3 w-3", isQuestionActive ? "text-primary" : "text-muted-foreground/40")} />
                                 )}
                                 <span className={cn(
-                                  "text-[11px] truncate ml-1.5",
+                                  "text-[11px] truncate ml-1 flex-1 min-w-0",
                                   isQuestionActive ? "text-foreground font-medium" : "text-muted-foreground group-hover/question:text-foreground"
                                 )}>
                                   Q{qIdx + 1}: {q.question}
@@ -373,7 +374,7 @@ function SidebarContentComponent() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { user, isAuthenticated, logout } = useAuth();
-  const { setOpenMobile, state } = useSidebar();
+  const { setOpenMobile, state, setOpen } = useSidebar();
   const { invitations: myInvitations, fetchInvitations, removeInvitation, clearInvitations } = useNotificationStore();
   const [decliningTokens, setDecliningTokens] = useState<Set<string>>(new Set());
   const fetchInProgress = useRef(false);
@@ -509,7 +510,7 @@ function SidebarContentComponent() {
           return {
             ...q,
             index: idx,
-            isAnswered: answers ? !!answers[answerKey] : false,
+            isAnswered: answers ? (answers[answerKey] !== undefined && answers[answerKey] !== null) : false,
           };
         });
 
@@ -623,6 +624,13 @@ function SidebarContentComponent() {
   useEffect(() => {
     setOpenMobile(false);
   }, [pathname, setOpenMobile]);
+
+  // Auto-expand sidebar when on any AIMA page
+  useEffect(() => {
+    if (routeFlags.isAimaPage) {
+      setOpen(true);
+    }
+  }, [routeFlags.isAimaPage, setOpen]);
 
   // Keep AIMA Assessment toggle closed by default for admin and premium accounts
   useEffect(() => {
@@ -951,7 +959,7 @@ function SidebarContentComponent() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                            <SidebarMenuSub className="mt-0.5 gap-0.5">
                               {/* AIMA Assessment — nested inside Free */}
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
@@ -990,7 +998,7 @@ function SidebarContentComponent() {
                                       transition={{ duration: 0.2 }}
                                       className="overflow-hidden"
                                     >
-                                      <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                                      <SidebarMenuSub className="mt-0.5 gap-0.5">
                                         {displayDomains.map((domain: any) => (
                                           <DomainTreeItem
                                             key={domain.id}
@@ -1059,7 +1067,7 @@ function SidebarContentComponent() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                            <SidebarMenuSub className="mt-0.5 gap-0.5">
                               {/* AI Vulnerability Assessment */}
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
@@ -1111,7 +1119,7 @@ function SidebarContentComponent() {
                                       exit={{ height: 0, opacity: 0 }}
                                       className="overflow-hidden"
                                     >
-                                      <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                                      <SidebarMenuSub className="mt-0.5 gap-0.5">
                                         {/* Dashboard */}
                                         <SidebarMenuSubItem>
                                           <SidebarMenuSubButton
@@ -1179,7 +1187,7 @@ function SidebarContentComponent() {
                                               </div>
 
                                               {isCatExpanded && catControls.length > 0 && (
-                                                <SidebarMenuSub className="border-l border-sidebar-border/50 ml-2 pl-2.5 mt-0.5 gap-0">
+                                                <SidebarMenuSub className="border-sidebar-border/50 mt-0.5 gap-0">
                                                   {catControls.map((control: CRCControl) => {
                                                     const isAnswered = crcResponses[control.id] !== undefined;
                                                     return (
@@ -1260,7 +1268,7 @@ function SidebarContentComponent() {
                                       exit={{ height: 0, opacity: 0 }}
                                       className="overflow-hidden"
                                     >
-                                      <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                                      <SidebarMenuSub className="mt-0.5 gap-0.5">
                                         <SidebarMenuSubItem>
                                           <SidebarMenuSubButton
                                             onClick={() => premiumStatus ? handleProjectNav(`/fairness-bias`) : openSubscriptionModal("Unlock Premium to Access Manual Prompt Testing")}
@@ -1356,7 +1364,7 @@ function SidebarContentComponent() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden"
                           >
-                            <SidebarMenuSub className="border-l border-sidebar-border ml-[18px] pl-3 mt-0.5 gap-0.5">
+                            <SidebarMenuSub className="mt-0.5 gap-0.5">
                               <SidebarMenuSubItem>
                                 <SidebarMenuSubButton
                                   onClick={() => handleProjectNav(`/settings`)}

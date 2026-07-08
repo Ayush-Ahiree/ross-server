@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { showToast } from "../../lib/toast";
@@ -31,6 +31,7 @@ import {
   IconPlayerPlay,
   IconCpu,
   IconUserCheck,
+  IconFilter,
 } from "@tabler/icons-react";
 import { CardSkeleton, DashboardSkeleton } from "../../components/Skeleton";
 import SubscriptionModal from "../../components/features/subscriptions/SubscriptionModal";
@@ -53,6 +54,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -104,8 +106,8 @@ const CARD_THEMES = [
     shadow: "hover:shadow-success/5",
     btnPrimary: "bg-success/15 text-success dark:text-success hover:bg-success/25 border-0 font-bold",
     btnSecondary: "border-success/30 text-success dark:text-success hover:bg-success/10",
-    badge: "bg-success/10 text-success dark:text-success-foreground font-semibold shadow-xs",
-    badgeRole: "bg-success/20 text-success dark:text-success-foreground font-bold shadow-xs",
+    badge: "bg-success/10 text-success dark:text-success font-semibold shadow-xs",
+    badgeRole: "bg-success/20 text-success dark:text-success font-bold shadow-xs",
     text: "text-foreground"
   },
   { // Purple
@@ -127,6 +129,33 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<'created_desc' | 'created_asc' | 'name_asc' | 'name_desc'>('created_desc');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'not_started' | 'in_progress' | 'completed'>('all');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+
+  const filteredProjects = useMemo(() => {
+    let result = [...projects];
+    if (filterStatus !== 'all') {
+      result = result.filter(p => p.status === filterStatus);
+    }
+    
+    result.sort((a, b) => {
+      if (sortBy === 'name_asc') {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'name_desc') {
+        return b.name.localeCompare(a.name);
+      } else if (sortBy === 'created_asc') {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateA - dateB;
+      } else { // created_desc
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA;
+      }
+    });
+    return result;
+  }, [projects, sortBy, filterStatus]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newProject, setNewProject] = useState({
     name: "",
@@ -293,13 +322,13 @@ export default function DashboardPage() {
   // Fix Radix UI Dialog pointer-events lock bug when modal states change
   useEffect(() => {
     if (typeof document === "undefined") return;
-    if (!deletingProjectId && !editingProject && !showCreateForm && !showPathSelection && !showSubscriptionModal) {
+    if (!deletingProjectId && !editingProject && !showCreateForm && !showPathSelection && !showSubscriptionModal && !showFilterModal) {
       const timer = setTimeout(() => {
         document.body.style.pointerEvents = "";
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [deletingProjectId, editingProject, showCreateForm, showPathSelection, showSubscriptionModal]);
+  }, [deletingProjectId, editingProject, showCreateForm, showPathSelection, showSubscriptionModal, showFilterModal]);
 
   useEffect(() => {
     if (authLoading) {
@@ -578,10 +607,26 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <h2 className="text-2xl font-bold mb-6 text-foreground flex items-center gap-2.5">
-              <IconFolders className="w-6 h-6 text-primary shrink-0" />
-              <span>Your Projects</span>
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
+                <IconFolders className="w-6 h-6 text-primary shrink-0" />
+                <span>Your Projects</span>
+              </h2>
+              {projects.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilterModal(true)}
+                  className="h-9 px-3 flex items-center gap-1.5 text-xs font-semibold bg-white dark:bg-zinc-900 border-border/60 hover:bg-muted/50 rounded-lg shadow-2xs transition-all duration-200"
+                >
+                  <IconFilter className="w-4 h-4 text-muted-foreground" />
+                  <span>Filter & Sort</span>
+                  {(filterStatus !== 'all' || sortBy !== 'created_desc') && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary ml-0.5" />
+                  )}
+                </Button>
+              )}
+            </div>
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
@@ -607,9 +652,26 @@ export default function DashboardPage() {
                   Create Your First Project
                 </Button>
               </div>
+            ) : filteredProjects.length === 0 ? (
+              <div className="text-center py-12 border border-dashed border-border/60 rounded-xl bg-muted/10">
+                <IconFilter className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                <h3 className="text-sm font-semibold mb-1">No matching projects</h3>
+                <p className="text-xs text-muted-foreground mb-4">No projects match the selected status filter.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFilterStatus('all');
+                    setSortBy('created_desc');
+                  }}
+                  className="h-8 px-3 text-xs font-semibold"
+                >
+                  Clear Filters
+                </Button>
+              </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {projects.map((project, index) => {
+                {filteredProjects.map((project, index) => {
                   const theme = CARD_THEMES[index % CARD_THEMES.length];
                   return (
                     <motion.div
@@ -697,7 +759,7 @@ export default function DashboardPage() {
 
                         <CardContent className="py-2 flex-1 flex flex-col justify-end" />
 
-                        <CardFooter className="pt-3 pb-5 flex justify-end gap-2 border-t border-border/25 flex-none bg-muted/5">
+                        <CardFooter className="pt-3 pb-5 flex justify-end gap-2 border-t border-border/55 flex-none bg-muted/5">
                           {project.status === 'completed' ? (
                             <>
                               <Button
@@ -763,6 +825,94 @@ export default function DashboardPage() {
         title="Unlock Premium to Access Multiple Projects"
         description="Upgrade to premium to create unlimited projects and unlock many more advanced capabilities."
       />
+
+      {/* Filter & Sort Modal */}
+      <Dialog open={showFilterModal} onOpenChange={setShowFilterModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <IconFilter className="w-5 h-5 text-primary shrink-0" />
+              <span>Filter & Sort Projects</span>
+            </DialogTitle>
+            <DialogDescription>
+              Refine the list of projects displayed on your dashboard.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-5 py-4">
+            {/* Sort Section */}
+            <div className="flex flex-col gap-2.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sort By</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'created_desc', label: 'Newest First' },
+                  { id: 'created_asc', label: 'Oldest First' },
+                  { id: 'name_asc', label: 'Name (A-Z)' },
+                  { id: 'name_desc', label: 'Name (Z-A)' },
+                ].map((opt) => (
+                  <Button
+                    key={opt.id}
+                    variant={sortBy === opt.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSortBy(opt.id as any)}
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold justify-start transition-all duration-200 ${
+                      sortBy === opt.id ? "bg-primary text-primary-foreground shadow-sm" : "border-border/60 hover:bg-muted/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Filter Section */}
+            <div className="flex flex-col gap-2.5">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Filter By Status</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'all', label: 'All Statuses' },
+                  { id: 'not_started', label: 'Not Started' },
+                  { id: 'in_progress', label: 'In Progress' },
+                  { id: 'completed', label: 'Completed' },
+                ].map((opt) => (
+                  <Button
+                    key={opt.id}
+                    variant={filterStatus === opt.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterStatus(opt.id as any)}
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold justify-start transition-all duration-200 ${
+                      filterStatus === opt.id ? "bg-primary text-primary-foreground shadow-sm" : "border-border/60 hover:bg-muted/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center border-t border-border/20 pt-4 mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSortBy('created_desc');
+                setFilterStatus('all');
+              }}
+              className="text-xs font-semibold text-muted-foreground hover:text-foreground h-9 px-3"
+            >
+              Reset Defaults
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowFilterModal(false)}
+              className="bg-primary text-primary-foreground font-bold h-9 px-4 rounded-lg shadow-sm"
+            >
+              Apply Filters
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Path Selection Modal — shown when user clicks Start on a new project */}
       {pathSelectionProjectId && (

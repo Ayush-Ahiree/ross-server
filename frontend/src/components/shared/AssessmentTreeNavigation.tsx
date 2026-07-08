@@ -205,7 +205,7 @@ const DomainTreeItem = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <SidebarMenuSub className="border-l border-sidebar-border ml-[21px] pl-4 mt-1 gap-1">
+            <SidebarMenuSub className="mt-1 gap-1">
               {domain.practices.map((practice) => {
                 const isPracticeActive = isDomainActive && currentPracticeId === practice.id;
                 const isPracticeSelectedOnly = isPracticeActive && (currentQuestionIndex === null || currentQuestionIndex === undefined);
@@ -230,7 +230,7 @@ const DomainTreeItem = ({
                     </SidebarMenuSubButton>
 
                     {isPracticeActive && practice.questions && practice.questions.length > 0 && (
-                      <SidebarMenuSub className="border-l border-sidebar-border/50 ml-2 pl-3 mt-1 gap-0.5">
+                      <SidebarMenuSub className="border-sidebar-border/50 mt-1 gap-0.5">
                         {practice.questions.map((q, qIdx) => {
                           const isQuestionActive = isPracticeActive && currentQuestionIndex === qIdx;
                           return (
@@ -557,7 +557,7 @@ const AssessmentTreeNavigation: React.FC<AssessmentTreeNavigationProps> = ({
       >
         <SidebarContent>
           {/* SECTION 1: ASSESSMENT */}
-          <SidebarGroup className="px-2 py-1">
+          <SidebarGroup className="pl-2 pr-0.5 py-1">
             <button
               type="button"
               className="group/label w-full flex items-center px-2 py-2 mb-2 cursor-pointer rounded-md transition-colors hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -611,7 +611,7 @@ const AssessmentTreeNavigation: React.FC<AssessmentTreeNavigationProps> = ({
 
           {/* SECTION 3: PREMIUM FEATURES */}
           {projectId && !hidePremiumFeaturesButton && (
-            <SidebarGroup className="px-2 py-1">
+            <SidebarGroup className="pl-2 pr-0.5 py-1">
               <button
                 type="button"
                 className="group/label w-full flex items-center px-2 py-2 mb-2 cursor-pointer rounded-md transition-colors hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -735,7 +735,7 @@ const AssessmentTreeNavigation: React.FC<AssessmentTreeNavigationProps> = ({
                                       className="overflow-hidden"
                                     >
                                       {isFairness && (
-                                        <SidebarMenuSub className="border-l border-sidebar-border ml-[21px] pl-4 mt-1 gap-1">
+                                        <SidebarMenuSub className="mt-1 gap-1">
                                           <SidebarMenuSubItem>
                                             <SidebarMenuSubButton 
                                               onClick={() => premiumStatus ? router.push(`/assess/${projectId}/fairness-bias`) : openSubscriptionModal("Unlock Premium to Access Manual Prompt Testing", "Upgrade to premium to unlock this feature and many more advanced capabilities.")} 
@@ -781,7 +781,7 @@ const AssessmentTreeNavigation: React.FC<AssessmentTreeNavigationProps> = ({
                                         </SidebarMenuSub>
                                       )}
                                       {item.id === "crc" && (
-                                        <SidebarMenuSub className="border-l border-sidebar-border ml-[21px] pl-4 mt-1 gap-1">
+                                        <SidebarMenuSub className="mt-1 gap-1">
                                           {/* Dashboard Link */}
                                           <SidebarMenuSubItem>
                                             <SidebarMenuSubButton
@@ -883,7 +883,7 @@ const AssessmentTreeNavigation: React.FC<AssessmentTreeNavigationProps> = ({
                                                 </div>
 
                                                 {isCatExpanded && catControls.length > 0 && (
-                                                  <SidebarMenuSub id={`crc-category-${catIdx}`} className="border-l border-sidebar-border/50 ml-2 pl-3 mt-1 gap-0.5">
+                                                  <SidebarMenuSub id={`crc-category-${catIdx}`} className="border-sidebar-border/50 mt-1 gap-0.5">
                                                     {catControls.map((control: CRCControl) => {
                                                       const isAnswered = crcResponses[control.id] !== undefined;
                                                       return (
@@ -937,7 +937,7 @@ const AssessmentTreeNavigation: React.FC<AssessmentTreeNavigationProps> = ({
 
           {/* SECTION 3: SETTINGS & TEAM */}
           {projectId && user && (
-            <SidebarGroup className="px-2 py-1">
+            <SidebarGroup className="pl-2 pr-0.5 py-1">
               <button
                 type="button"
                 className="group/label w-full flex items-center px-2 py-2 mb-2 cursor-pointer rounded-md transition-colors hover:bg-sidebar-accent focus:outline-none focus:ring-2 focus:ring-primary/20"

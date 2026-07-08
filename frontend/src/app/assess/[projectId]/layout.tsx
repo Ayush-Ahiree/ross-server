@@ -57,30 +57,40 @@ function AssessmentLayoutContent({ children }: { children: React.ReactNode }) {
         ? `/assess/${projectId}/crc/dashboard`
         : `/assess/${projectId}`;
 
+    // Hide layout breadcrumb for the main assessment page and standalone practice page
+    // (they embed the breadcrumb inside their sticky page header)
+    const isMainAssessment = pathname === `/assess/${projectId}`;
+    const isPracticePage = pathname.match(new RegExp(`^/assess/[^/]+/[^/]+/[^/]+$`));
+    const hideLayoutBreadcrumb = isMainAssessment || isPracticePage;
+
     return (
-        <div className="flex flex-col min-h-full overflow-auto">
+        <div className="flex flex-col min-h-full">
             {/* Main Content Area — navigation now lives in the unified left sidebar */}
             <div className="flex-1">
-                <div className="px-8 py-6 max-w-7xl w-full mx-auto">
-                    <Breadcrumb
-                        projectName={projectName || "Loading project..."}
-                        projectHref={projectBreadcrumbHref}
-                        items={[
-                            {
-                                label: getBreadcrumbLabel(pathname)
-                            }
-                        ]}
-                    />
-                    <div className="mt-2 flex-1">
-                        {isPremiumRoute ? (
-                            <WizardGateProvider projectId={projectId} featureName={getBreadcrumbLabel(pathname)}>
-                                {children}
-                            </WizardGateProvider>
-                        ) : (
-                            children
-                        )}
+                {hideLayoutBreadcrumb ? (
+                    children
+                ) : (
+                    <div className="px-8 py-6 max-w-7xl w-full mx-auto">
+                        <Breadcrumb
+                            projectName={projectName || "Loading project..."}
+                            projectHref={projectBreadcrumbHref}
+                            items={[
+                                {
+                                    label: getBreadcrumbLabel(pathname)
+                                }
+                            ]}
+                        />
+                        <div className="mt-2 flex-1">
+                            {isPremiumRoute ? (
+                                <WizardGateProvider projectId={projectId} featureName={getBreadcrumbLabel(pathname)}>
+                                    {children}
+                                </WizardGateProvider>
+                            ) : (
+                                children
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

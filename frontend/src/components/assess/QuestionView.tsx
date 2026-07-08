@@ -13,6 +13,10 @@ import {
     IconInfoCircle,
     IconLoader2,
     IconLock,
+    IconCpu,
+    IconDatabase,
+    IconShieldLock,
+    IconFolder,
 } from "@tabler/icons-react";
 import { SecureTextarea } from "../shared/SecureTextarea";
 import { AssessmentSkeleton } from "../Skeleton";
@@ -20,6 +24,75 @@ import { Button } from "../ui/button";
 import { sanitizeAimaDescription } from "../../lib/sanitize";
 import { getMissingQuestions, buildAssessmentAnswerKey, type MissingQuestion } from "../../lib/assessmentValidation";
 import MissingAnswersDialog from "./MissingAnswersDialog";
+import { Breadcrumb } from "../shared/Breadcrumb";
+import { isPremiumStatus } from "../../lib/constants";
+
+const getDomainIcon = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes("govern") || t.includes("responsib")) {
+        return IconShieldLock;
+    }
+    if (t.includes("data") || t.includes("privacy")) {
+        return IconDatabase;
+    }
+    if (t.includes("design") || t.includes("develop") || t.includes("model")) {
+        return IconCpu;
+    }
+    if (t.includes("security") || t.includes("protection")) {
+        return IconLock;
+    }
+    return IconFolder;
+};
+
+const getLevelColor = (level: string | number) => {
+    const lvl = String(level);
+    if (lvl === "1") {
+        return "bg-blue-50/50 text-blue-700 border-blue-200/50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800/30";
+    }
+    if (lvl === "2") {
+        return "bg-purple-50/50 text-purple-700 border-purple-200/50 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-800/30";
+    }
+    return "bg-amber-50/50 text-amber-700 border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800/30";
+};
+
+const getStreamColor = (stream: string) => {
+    if (stream === "A") {
+        return "bg-teal-50/50 text-teal-700 border-teal-200/50 dark:bg-teal-950/20 dark:text-teal-400 dark:border-teal-800/30";
+    }
+    return "bg-rose-50/50 text-rose-700 border-rose-200/50 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800/30";
+};
+
+const getOptionColors = (value: number, isSelected: boolean) => {
+    if (value === 0) { // No
+        return {
+            labelClass: isSelected
+                ? "border-destructive bg-destructive/5 dark:bg-destructive/10"
+                : "border-border hover:border-destructive/40 hover:bg-destructive/2 dark:hover:bg-destructive/2",
+            radioClass: isSelected
+                ? "border-destructive bg-destructive"
+                : "border-border bg-transparent",
+        };
+    } else if (value === 1.5) { // Partially
+        return {
+            labelClass: isSelected
+                ? "border-warning bg-warning/5 dark:bg-warning/10"
+                : "border-border hover:border-warning/40 hover:bg-warning/2 dark:hover:bg-warning/2",
+            radioClass: isSelected
+                ? "border-warning bg-warning"
+                : "border-border bg-transparent",
+        };
+    } else { // Yes
+        return {
+            labelClass: isSelected
+                ? "border-success bg-success/5 dark:bg-success/10"
+                : "border-border hover:border-success/40 hover:bg-success/2 dark:hover:bg-success/2",
+            radioClass: isSelected
+                ? "border-success bg-success"
+                : "border-border bg-transparent",
+        };
+    }
+};
+
 /**
  * HTML entities for escaping.
  */
@@ -126,6 +199,7 @@ export default function QuestionView() {
 
     const {
         projectId,
+        projectName,
         domains,
         answers,
         notes,
@@ -263,89 +337,106 @@ export default function QuestionView() {
     const currentNote = notes[questionKey] || "";
 
     const totalQuestions = questions.length;
-    // Calculate progress for CURRENT practice
-    const answeredQuestions = Object.keys(answers).filter((key) =>
-        key.startsWith(`${currentDomainId}:${currentPracticeId}:`),
-    ).length;
+    // Calculate progress for CURRENT practice by checking actual questions
+    const answeredQuestions = questions.reduce((count, question, idx) => {
+        const key = buildAssessmentAnswerKey(currentDomainId, currentPracticeId, question.level, question.stream, idx);
+        return answers[key] !== undefined && answers[key] !== null ? count + 1 : count;
+    }, 0);
     const progress = totalQuestions > 0 ? (answeredQuestions / totalQuestions) * 100 : 0;
 
     const currentDomain = domains.find(d => d.id === currentDomainId);
     const currentPractice = currentDomain?.practices[currentPracticeId];
 
+    const DomainIcon = currentDomain ? getDomainIcon(currentDomain.title) : IconCpu;
+
+    const premiumStatus = isPremiumStatus(user?.subscription_status);
+    const projectBreadcrumbHref = premiumStatus
+        ? `/assess/${projectId}/crc/dashboard`
+        : `/assess/${projectId}`;
+
     return (
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 flex flex-col w-full">
             {/* HEADER */}
-            <div className="bg-background border-b border-border p-4 flex-none">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => router.back()}
-                            type="button"
-                            className="flex items-center gap-2 ml-2 text-primary hover:text-primary/80 transition-colors"
-                        >
-                            <IconArrowLeft className="w-4 h-4" />
-                            Back
-                        </button>
-                        <div className="h-6 w-px bg-border" />
-                        <div>
-                            <h1 className="text-lg font-semibold text-foreground">
-                                {currentPractice?.title || 'Loading...'}
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                {currentDomain?.title} • Question {validQuestionIndex + 1} of {totalQuestions}
-                            </p>
-                        </div>
-                        {isReadOnly && (
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted border border-border text-muted-foreground text-xs font-medium ml-4">
-                                <IconLock size={12} />
-                                View Only
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-4">
+            <div className="bg-background border-b border-border px-8 py-3 flex-none sticky top-0 z-20 shadow-xs w-full">
+                <div className="max-w-7xl mx-auto flex flex-col gap-2">
+                    {/* Top: Breadcrumb */}
+                    <div className="flex items-center justify-between text-xs">
+                        <Breadcrumb projectName={projectName || "Loading..."} projectHref={projectBreadcrumbHref} items={[{ label: "AI Maturity Assessment (AIMA)" }]} />
+                        
                         {saving && (
-                            <div className="flex items-center gap-2 text-sm text-primary">
-                                <IconLoader2 className="w-4 h-4 animate-spin" />
+                            <div className="flex items-center gap-2 text-xs text-primary font-medium animate-pulse">
+                                <IconLoader2 className="w-3.5 h-3.5 animate-spin" />
                                 Saving...
                             </div>
                         )}
-                        {isCompleted && (
-                            <Button
-                                variant="outline"
-                                onClick={() => router.push(reportUrl)}
+                    </div>
+
+                    {/* Bottom: Main row */}
+                    <div className="flex items-center justify-between gap-4 mt-1">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button
+                                onClick={() => router.back()}
                                 type="button"
-                                className="flex items-center gap-2 px-4 py-2"
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-border/60 hover:bg-muted text-xs text-foreground/80 hover:text-foreground transition-all shadow-2xs shrink-0"
                             >
-                                View Report
-                            </Button>
-                        )}
-                        <Button
-                            onClick={handleSubmitClick}
-                            type="button"
-                            disabled={submitting || isReadOnly || (isCompleted && !hasChangedAnswers)}
-                            className="flex items-center gap-2 px-4 py-2 bg-primary text-background rounded-lg hover:bg-primary/80 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {submitting ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    {submissionPhase === 'saving-notes'
-                                        ? 'Saving notes...'
-                                        : submissionPhase === 'submitting'
-                                            ? (isCompleted ? 'Resubmitting assessment...' : 'Submitting assessment...')
-                                            : 'Processing...'}
-                                </>
-                            ) : (
-                                <>
-                                    {isCompleted ? 'Resubmit Changes' : 'Submit Project'}
-                                </>
+                                <IconArrowLeft className="w-3.5 h-3.5" />
+                                Back
+                            </button>
+                            <div className="h-5 w-px bg-border shrink-0" />
+                            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                                <DomainIcon className="w-4 h-4 text-primary shrink-0" />
+                                <h1 className="text-sm font-bold text-foreground truncate">
+                                    {currentPractice?.title || 'Loading...'}
+                                </h1>
+                                <span className="text-muted-foreground/30 text-xs shrink-0">|</span>
+                                <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px] sm:max-w-xs">
+                                    {currentDomain?.title}
+                                </span>
+                                <span className="inline-flex items-center text-[9px] py-0.5 px-2 rounded-full font-semibold bg-primary/10 text-primary border border-primary/20 shrink-0">
+                                    Question {validQuestionIndex + 1} of {totalQuestions}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 shrink-0">
+                            {isReadOnly && (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted border border-border text-muted-foreground text-[10px] font-medium">
+                                    <IconLock size={10} />
+                                    View Only
+                                </div>
                             )}
-                        </Button>
+                            {isCompleted && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => router.push(reportUrl)}
+                                    type="button"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 border-success/30 text-success dark:text-success hover:bg-success/10 shadow-xs rounded-lg text-xs font-semibold transition-all"
+                                >
+                                    View Report
+                                </Button>
+                            )}
+                            <Button
+                                onClick={handleSubmitClick}
+                                type="button"
+                                disabled={submitting || isReadOnly || (isCompleted && !hasChangedAnswers)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-bold shadow-xs"
+                            >
+                                {submitting ? (
+                                    <>
+                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        <span>Submitting...</span>
+                                    </>
+                                ) : (
+                                    <span>{isCompleted ? 'Resubmit Changes' : 'Submit Project'}</span>
+                                )}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Question Content */}
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex-1 px-8 py-6">
                 <div className="max-w-4xl mx-auto">
                     <div ref={topAnchorRef} aria-hidden />
                     {/* Progress Bar */}
@@ -354,7 +445,7 @@ export default function QuestionView() {
                             <span className="text-sm font-medium text-foreground">
                                 Question {validQuestionIndex + 1} of {totalQuestions}
                             </span>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-muted-foreground font-semibold">
                                 {Math.round(progress)}% Complete
                             </span>
                         </div>
@@ -372,60 +463,18 @@ export default function QuestionView() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="bg-card rounded-2xl shadow-lg border border-border p-8 mb-8"
+                        className="bg-card rounded-2xl shadow-lg border border-border/80 p-8 mb-8"
                     >
                         <div className="mb-6">
-                            <div className="flex items-center gap-5 mb-4">
-                                <div className="flex items-center gap-1">
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-muted text-muted-foreground">
-                                        Level {currentQuestion.level}
-                                    </span>
-                                    <div className="relative group">
-                                        <button
-                                            type="button"
-                                            aria-describedby="tooltip-level"
-                                            aria-label="View information about maturity levels"
-                                            className="focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full"
-                                        >
-                                            <IconInfoCircle size={16} className="text-muted-foreground hover:text-foreground" />
-                                        </button>
-                                        <div 
-                                            id="tooltip-level"
-                                            role="tooltip"
-                                            className="absolute left-full top-1/2 -translate-y-1/2 ml-2 hidden group-hover:block group-focus-within:block bg-popover text-popover-foreground text-xs rounded-md px-3 py-2 border border-border shadow-md z-50 min-w-[200px]"
-                                        >
-                                            <p>Represents the maturity stage of the AI practice</p>
-                                            <p className="mt-1">from <span className="font-bold">basic (Level 1)</span> to <span className="font-bold">advanced (Level 3)</span>.</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-1">
-                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-muted text-muted-foreground">
-                                        Stream {currentQuestion.stream}
-                                    </span>
-                                    <div className="relative group">
-                                        <button
-                                            type="button"
-                                            aria-describedby="tooltip-stream"
-                                            aria-label="View stream details"
-                                            className="focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-full"
-                                        >
-                                            <IconInfoCircle size={16} className="text-muted-foreground hover:text-foreground" />
-                                        </button>
-                                        <div 
-                                            id="tooltip-stream"
-                                            role="tooltip"
-                                            className="absolute left-full top-1/2 -translate-y-1/2 ml-2 hidden group-hover:block group-focus-within:block bg-popover text-popover-foreground text-xs rounded-md px-3 py-2 border border-border shadow-md z-50 min-w-[240px]"
-                                        >
-                                            <p className="mb-1">Each domain has two complementary streams:</p>
-                                            <ul className="space-y-1 list-disc pl-4">
-                                                <li><span className="font-bold">Stream A:</span> Create & Promote</li>
-                                                <li><span className="font-bold">Stream B:</span> Measure & Improve</li>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className={`text-[10px] py-1 px-2.5 rounded-full font-semibold border flex items-center gap-1.5 ${getLevelColor(currentQuestion.level)}`}>
+                                    <IconCpu className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Level {currentQuestion.level}</span>
+                                </span>
+                                <span className={`text-[10px] py-1 px-2.5 rounded-full font-semibold border flex items-center gap-1.5 ${getStreamColor(currentQuestion.stream)}`}>
+                                    <IconInfoCircle className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Stream {currentQuestion.stream}</span>
+                                </span>
                             </div>
 
                             <h2 className="text-xl font-semibold text-foreground leading-relaxed">
@@ -438,9 +487,9 @@ export default function QuestionView() {
                                         <div className="p-1 rounded-md bg-primary/10">
                                             <IconInfoCircle size={14} className="text-primary" />
                                         </div>
-                                        <span className="text-sm font-bold text-foreground uppercase tracking-wider">Description (Guide Text)</span>
+                                        <span className="text-xs font-bold text-foreground/80 uppercase tracking-wider">Description (Guide Text)</span>
                                     </div>
-                                    <div className="rounded-xl border border-dashed border-border bg-muted/30 p-5 text-sm text-foreground/90 font-normal [&_strong]:text-foreground [&_strong]:font-bold [&_b]:text-foreground [&_b]:font-bold [&_ul]:mt-3 [&_ul]:space-y-2 [&_li]:relative [&_li]:pl-5 [&_li:before]:content-['•'] [&_li:before]:absolute [&_li:before]:left-0 [&_li:before]:text-primary [&_p]:mb-3 [&_p:last-child]:mb-0 shadow-sm">
+                                    <div className="rounded-xl border-l-4 border-l-primary/60 border-y border-r border-border bg-muted/20 p-5 text-sm text-foreground/90 font-normal [&_strong]:text-foreground [&_strong]:font-bold [&_b]:text-foreground [&_b]:font-bold [&_ul]:mt-3 [&_ul]:space-y-2 [&_li]:relative [&_li]:pl-5 [&_li:before]:content-['•'] [&_li:before]:absolute [&_li:before]:left-0 [&_li:before]:text-primary [&_p]:mb-3 [&_p:last-child]:mb-0 shadow-2xs">
                                         <div dangerouslySetInnerHTML={{ 
                                             __html: (descriptionCache?.key === questionKey ? descriptionCache.html : null) || formatAimaDescription(currentQuestion.description) 
                                         }} />
@@ -466,55 +515,54 @@ export default function QuestionView() {
                                     label: "Yes",
                                     description: "Fully implemented and operational",
                                 },
-                            ].map((option) => (
-                                <label
-                                    key={option.value}
-                                    className={`flex items-start p-4 rounded-xl border-2 transition-all duration-200 ${currentAnswer === option.value
-                                        ? "border-primary bg-primary/5"
-                                        : "border-border hover:border-primary/50 hover:bg-muted/50"
-                                        } ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
-                                >
-                                    <div className="relative flex items-center justify-center mt-1">
-                                        <input
-                                            type="radio"
-                                            name="answer"
-                                            value={option.value}
-                                            checked={currentAnswer === option.value}
-                                            disabled={isReadOnly}
-                                            onChange={() =>
-                                                handleAnswerChange(validQuestionIndex, option.value)
-                                            }
-                                            className="sr-only peer"
-                                        />
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 peer-focus-visible:ring peer-focus-visible:ring-primary/50 peer-focus-visible:ring-offset-1 ${currentAnswer === option.value
-                                            ? "border-primary bg-primary"
-                                            : "border-border bg-transparent"
-                                            }`}>
-                                            {currentAnswer === option.value && (
-                                                <motion.div
-                                                    initial={{ scale: 0 }}
-                                                    animate={{ scale: 1 }}
-                                                    className="w-2 h-2 rounded-full bg-white"
-                                                />
-                                            )}
+                            ].map((option) => {
+                                const isSelected = currentAnswer === option.value;
+                                const colors = getOptionColors(option.value, isSelected);
+                                return (
+                                    <label
+                                        key={option.value}
+                                        className={`flex items-start p-4 rounded-xl border-2 transition-all duration-200 ${colors.labelClass} ${isReadOnly ? "cursor-not-allowed opacity-80" : "cursor-pointer hover:shadow-xs hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.995]"}`}
+                                    >
+                                        <div className="relative flex items-center justify-center mt-1">
+                                            <input
+                                                type="radio"
+                                                name="answer"
+                                                value={option.value}
+                                                checked={isSelected}
+                                                disabled={isReadOnly}
+                                                onChange={() =>
+                                                    handleAnswerChange(validQuestionIndex, option.value)
+                                                }
+                                                className="sr-only peer"
+                                            />
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 peer-focus-visible:ring peer-focus-visible:ring-primary/50 peer-focus-visible:ring-offset-1 ${colors.radioClass}`}>
+                                                {isSelected && (
+                                                    <motion.div
+                                                        initial={{ scale: 0 }}
+                                                        animate={{ scale: 1 }}
+                                                        className="w-2 h-2 rounded-full bg-white"
+                                                    />
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="ml-3 flex-1">
-                                        <div className="text-sm font-medium text-foreground">
-                                            {option.label}
+                                        <div className="ml-3 flex-1">
+                                            <div className="text-sm font-semibold text-foreground">
+                                                {option.label}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">
+                                                {option.description}
+                                            </div>
                                         </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {option.description}
-                                        </div>
-                                    </div>
-                                </label>
-                            ))}
+                                    </label>
+                                );
+                            })}
                         </div>
 
                         {/* Notes Section */}
                         <div className="mt-6 pt-6 border-t border-border">
-                            <h3 className="text-sm font-medium text-foreground mb-3">
-                                Your Notes
+                            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                <span>Your Notes</span>
+                                <span className="text-[10px] font-normal text-muted-foreground/80 bg-muted px-1.5 py-0.5 rounded border border-border/50">(Auto-saves)</span>
                             </h3>
                             <SecureTextarea
                                 value={currentNote}
@@ -536,7 +584,7 @@ export default function QuestionView() {
                             onClick={handlePreviousQuestion}
                             type="button"
                             disabled={!hasPreviousQuestion}
-                            className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-border text-foreground hover:bg-muted"
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold border border-border/60 text-foreground/80 hover:text-foreground bg-card hover:bg-muted/50 transition-all duration-200 shadow-2xs hover:shadow-xs disabled:opacity-40 disabled:pointer-events-none"
                         >
                             <IconArrowLeft className="w-4 h-4" />
                             Previous
@@ -546,7 +594,7 @@ export default function QuestionView() {
                             <button
                                 onClick={handleNextQuestion}
                                 type="button"
-                                className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 bg-primary hover:bg-primary/90 text-primary-foreground"
+                                className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-primary hover:bg-primary/95 text-primary-foreground transition-all duration-200 shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0"
                             >
                                 Next
                                 <IconArrowRight className="w-4 h-4" />
@@ -556,10 +604,10 @@ export default function QuestionView() {
                                 onClick={isCompleted && !hasChangedAnswers ? () => router.push(reportUrl) : handleSubmitClick}
                                 type="button"
                                 disabled={submitting || (isReadOnly && !(isCompleted && !hasChangedAnswers))}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed ${
                                     isCompleted && !hasChangedAnswers
-                                        ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                                        : 'bg-success hover:bg-success/90 text-background'
+                                        ? 'bg-primary hover:bg-primary/95 text-primary-foreground'
+                                        : 'bg-success hover:bg-success/95 text-white'
                                 }`}
                             >
                                 {submitting ? (

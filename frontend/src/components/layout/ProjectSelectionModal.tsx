@@ -30,7 +30,7 @@ const CARD_THEMES = [
   },
   { // Green
     border: "border-success/40 bg-success/[0.01] hover:bg-success/5 hover:border-success/50",
-    badge: "bg-success/10 text-success dark:text-success-foreground font-semibold shadow-xs",
+    badge: "bg-success/10 text-success dark:text-success font-semibold shadow-xs",
     icon: "text-success",
   },
   { // Purple
