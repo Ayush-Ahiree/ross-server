@@ -67,7 +67,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import ProjectEditForm from "@/components/features/projects/ProjectEditForm";
-import { INDUSTRY_OPTIONS, AI_SYSTEM_TYPES, isPremiumStatus, CARD_THEMES } from "@/lib/constants";
+import { INDUSTRY_OPTIONS, AI_SYSTEM_TYPES, isPremiumStatus, CARD_THEMES, MAX_DESCRIPTION_LENGTH } from "@/lib/constants";
 import { getReportRoute } from "@/lib/reportRoute";
 
 const POST_CHECKOUT_RETURN_URL_KEY = "postCheckoutReturnUrl";
@@ -949,11 +949,11 @@ export default function DashboardPage() {
                 }
                 placeholder="Describe your AI system"
                 rows={3}
-                maxLength={2000}
+                maxLength={MAX_DESCRIPTION_LENGTH}
               />
               <div className="flex justify-end pt-1">
-                <span className={`text-[10px] ${(newProject.description || '').length >= 2000 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                  {(newProject.description || '').length}/2000
+                <span className={`text-[10px] ${(newProject.description || '').length >= MAX_DESCRIPTION_LENGTH ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                  {(newProject.description || '').length}/{MAX_DESCRIPTION_LENGTH}
                 </span>
               </div>
             </div>

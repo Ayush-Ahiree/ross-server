@@ -52,7 +52,13 @@ export default function NotFound() {
               Go to Dashboard
             </Button>
             <Button
-              onClick={() => router.back()}
+              onClick={() => {
+                if (typeof window !== "undefined" && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push("/dashboard");
+                }
+              }}
               variant="outline"
               className="flex items-center gap-2 border-border text-foreground hover:bg-muted transition-all font-bold rounded-xl py-6 px-6 cursor-pointer"
             >

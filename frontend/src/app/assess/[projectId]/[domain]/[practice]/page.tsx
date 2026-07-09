@@ -227,11 +227,11 @@ export default function AssessmentPage() {
     return <AssessmentSkeleton />;
   }
 
-  if (!practice) {
-    const projectBreadcrumbHref = premiumStatus
-      ? `/assess/${projectId}/crc/dashboard`
-      : `/assess/${projectId}`;
+  const projectBreadcrumbHref = premiumStatus
+    ? `/assess/${projectId}/crc/dashboard`
+    : `/assess/${projectId}`;
 
+  if (!practice) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
         {/* Decorative gradients */}
@@ -294,9 +294,6 @@ export default function AssessmentPage() {
   const progressPercent = questions.length > 0 ? Math.min(100, (answeredCount / questions.length) * 100) : 0;
 
   const projectName = assessmentContext?.projectName;
-  const projectBreadcrumbHref = premiumStatus
-      ? `/assess/${projectId}/crc/dashboard`
-      : `/assess/${projectId}`;
 
   const DomainIcon = getDomainIcon(domainId);
 

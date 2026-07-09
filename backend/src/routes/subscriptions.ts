@@ -242,11 +242,20 @@ router.get("/details", authenticateToken, async (req, res) => {
       signup_date: user.created_at,
     };
 
-    if (user.subscription_status === 'trial') {
-      const trialEnds = user.trial_ends_at ? new Date(user.trial_ends_at).getTime() : 0;
-      const now = Date.now();
-      const diffMs = trialEnds - now;
-      const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    let currentStatus = user.subscription_status;
+
+    if (currentStatus === 'trial' && user.trial_ends_at && new Date() > new Date(user.trial_ends_at)) {
+      await pool.query(
+        "UPDATE users SET subscription_status = 'free', trial_used = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND subscription_status = 'trial' AND trial_ends_at <= NOW()",
+        [user.id]
+      );
+      currentStatus = 'free';
+      baseResponse.subscription_status = 'free';
+    }
+
+    if (currentStatus === 'trial') {
+      const trialEndsSeconds = user.trial_ends_at ? Math.floor(new Date(user.trial_ends_at).getTime() / 1000) : null;
+      const daysRemaining = calculateDaysRemaining(trialEndsSeconds) ?? 0;
 
       baseResponse.plan = {
         id: "trial",

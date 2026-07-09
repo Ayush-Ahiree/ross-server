@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { INDUSTRY_OPTIONS, AI_SYSTEM_TYPES } from "@/lib/constants";
+import { INDUSTRY_OPTIONS, AI_SYSTEM_TYPES, MAX_DESCRIPTION_LENGTH } from "@/lib/constants";
 
 
 interface ProjectEditFormProps {
@@ -89,13 +89,13 @@ export default function ProjectEditForm({
           onChange={(e) => setData({ ...data, description: e.target.value })}
           placeholder="Describe your AI system"
           rows={4}
-          maxLength={2000}
+          maxLength={MAX_DESCRIPTION_LENGTH}
         />
         <div className="flex justify-end pt-1">
           <span
-            className={`text-[10px] ${(data.description || "").length >= 2000 ? "text-destructive font-bold" : "text-muted-foreground"}`}
+            className={`text-[10px] ${(data.description || "").length >= MAX_DESCRIPTION_LENGTH ? "text-destructive font-bold" : "text-muted-foreground"}`}
           >
-            {(data.description || "").length}/2000
+            {(data.description || "").length}/{MAX_DESCRIPTION_LENGTH}
           </span>
         </div>
       </div>
