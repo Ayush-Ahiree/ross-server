@@ -34,16 +34,9 @@ export function FeatureCard({
         }
     };
 
-    const themeIndex = index % 5;
+    const themeIndex = index % CARD_THEMES.length;
     const theme = CARD_THEMES[themeIndex];
-    const bgClasses = [
-        "card-google-blue",
-        "card-google-red",
-        "card-google-green",
-        "card-google-yellow",
-        "card-google-purple",
-    ];
-    const cardBgClass = bgClasses[themeIndex];
+    const cardBgClass = theme.bg || "bg-card";
 
     return (
         <motion.div

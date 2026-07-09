@@ -335,7 +335,7 @@ const DatasetTestingPage = () => {
               </button>
               <div className="h-5 w-px bg-border shrink-0" />
               <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                <Scale className="w-4 h-4 text-primary shrink-0" style={{ color: "var(--section-premium)" }} />
+                <Scale className="w-4 h-4 shrink-0" style={{ color: "var(--section-premium)" }} />
                 <h1 className="text-sm font-bold text-foreground truncate">
                   Dataset Testing & Evaluation
                 </h1>

@@ -53,6 +53,12 @@ export interface DatasetReport {
   selections?: ReportSelections;
 }
 
+const CARD_THEMES_OPTIONS = {
+  "prompt-response": { bg: "card-google-blue", border: "border-blue-500/25" },
+  "api-endpoint": { bg: "card-google-purple", border: "border-purple-500/25" },
+  "dataset-testing": { bg: "card-google-green", border: "border-success/40" },
+};
+
 export default function FairnessBiasOptions() {
   const params = useParams();
   const router = useRouter();
@@ -228,7 +234,7 @@ export default function FairnessBiasOptions() {
                 </button>
                 <div className="h-5 w-px bg-border shrink-0" />
                 <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                  <Scale className="w-4 h-4 text-primary shrink-0" style={{ color: "var(--section-premium)" }} />
+                  <Scale className="w-4 h-4 shrink-0" style={{ color: "var(--section-premium)" }} />
                   <h1 className="text-sm font-bold text-foreground truncate">
                     Bias & Fairness Testing Options
                   </h1>
@@ -288,12 +294,7 @@ export default function FairnessBiasOptions() {
             {options.map((option, index) => {
               const Icon = option.icon;
               const isSelected = selectedMethod === option.id;
-              const cardThemes = {
-                "prompt-response": { bg: "card-google-blue", border: "border-blue-500/25" },
-                "api-endpoint": { bg: "card-google-purple", border: "border-purple-500/25" },
-                "dataset-testing": { bg: "card-google-green", border: "border-success/40" },
-              };
-              const theme = cardThemes[option.id as keyof typeof cardThemes] || { bg: "bg-card", border: "border-border" };
+              const theme = CARD_THEMES_OPTIONS[option.id as keyof typeof CARD_THEMES_OPTIONS] || { bg: "bg-card", border: "border-border" };
 
               return (
                 <motion.div

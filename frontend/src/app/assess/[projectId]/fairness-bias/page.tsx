@@ -147,7 +147,7 @@ export default function FairnessBiasTest() {
 
   if (questionsLoading) {
     return (
-      <div className="min-h-screen flex bg-background relative">
+      <div className="absolute inset-0 flex overflow-hidden bg-background">
         {!isPremium && (
           <>
             <div className="absolute inset-0 bg-overlay/20 backdrop-blur-sm z-40" />
@@ -172,7 +172,7 @@ export default function FairnessBiasTest() {
 
   if (fairnessQuestions.length === 0) {
     return (
-      <div className="min-h-screen flex bg-background relative">
+      <div className="absolute inset-0 flex overflow-hidden bg-background">
         {!isPremium && (
           <>
             <div className="absolute inset-0 bg-overlay/20 backdrop-blur-sm z-40" />
@@ -472,7 +472,7 @@ export default function FairnessBiasTest() {
                 </button>
                 <div className="h-5 w-px bg-border shrink-0" />
                 <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                  <Scale className="w-4 h-4 text-primary shrink-0" style={{ color: "var(--section-premium)" }} />
+                  <Scale className="w-4 h-4 shrink-0" style={{ color: "var(--section-premium)" }} />
                   <h1 className="text-sm font-bold text-foreground truncate">
                     Manual Prompt Testing
                   </h1>

@@ -16,6 +16,7 @@ import {
   IconMinus,
   IconLock,
   IconInfoCircle,
+  IconArrowLeft,
 } from "@tabler/icons-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -30,7 +31,6 @@ import SubscriptionModal from "@/components/features/subscriptions/SubscriptionM
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { showToast } from "@/lib/toast";
 import { QuickWinsWidget } from "@/components/features/governance/QuickWinsWidget";
-import { ArrowLeft } from "lucide-react";
 import { Breadcrumb } from "@/components/shared/Breadcrumb";
 
 // --- Helpers ---
@@ -434,7 +434,7 @@ export default function CRCDashboardPage() {
                 type="button"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-border/60 hover:bg-muted text-xs text-foreground/80 hover:text-foreground transition-all shadow-2xs shrink-0"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
+                <IconArrowLeft className="w-3.5 h-3.5" />
                 Back
               </button>
               <div className="h-5 w-px bg-border shrink-0" />

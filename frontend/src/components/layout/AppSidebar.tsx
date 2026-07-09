@@ -44,6 +44,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { AUTH_LOGIN_URL, ROLES, PREMIUM_STATUS } from "../../lib/constants";
 import { getRouteFlags } from "../../lib/route-utils";
+import { useCrcCategoryExpansion } from "@/hooks/useCrcCategoryExpansion";
 import {
   Sidebar,
   SidebarContent,
@@ -567,9 +568,7 @@ function SidebarContentComponent() {
   const [isPremiumFeaturesExpanded, setIsPremiumFeaturesExpanded] = useState(true);
   const [isFairnessExpanded, setIsFairnessExpanded] = useState(!!routeFlags.isFairnessPage);
   const [isCrcExpanded, setIsCrcExpanded] = useState(premiumStatus || !!routeFlags.isCrcPage);
-  const [expandedCrcCategories, setExpandedCrcCategories] = useState<Record<string, boolean>>(
-    currentCategory ? { [currentCategory]: true } : {}
-  );
+  const { expandedCrcCategories, setExpandedCrcCategories } = useCrcCategoryExpansion(currentCategory);
   const [isProjectSettingsExpanded, setIsProjectSettingsExpanded] = useState(!!routeFlags.isTeamPage || !!routeFlags.isSettingsPage);
 
   const currentQuestionRef = useRef<HTMLLIElement>(null);
@@ -706,18 +705,7 @@ function SidebarContentComponent() {
     return () => window.clearTimeout(timeoutId);
   }, [currentDomainId, currentPracticeId, currentQuestionIndex]);
 
-  // CRC category expansion sync
-  // Collapse all other categories when navigating to a new one to prevent endless scrolling
-  useEffect(() => {
-    if (currentCategory) {
-      setExpandedCrcCategories(prev => {
-        // If only the current category is expanded and nothing else, skip update
-        const keys = Object.keys(prev).filter(k => prev[k]);
-        if (keys.length === 1 && keys[0] === currentCategory) return prev;
-        return { [currentCategory]: true };
-      });
-    }
-  }, [currentCategory]);
+
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 

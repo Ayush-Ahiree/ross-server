@@ -28,6 +28,7 @@ import { PREMIUM_STATUS } from "../../lib/constants";
 import { CRCControl } from "../../lib/api";
 import { cn } from "@/lib/utils";
 import { getRouteFlags } from "../../lib/route-utils";
+import { useCrcCategoryExpansion } from "@/hooks/useCrcCategoryExpansion";
 import SubscriptionModal from "../features/subscriptions/SubscriptionModal";
 import {
   Sidebar,
@@ -341,9 +342,7 @@ const AssessmentTreeNavigation: React.FC<AssessmentTreeNavigationProps> = ({
   const [isPremiumFeaturesExpanded, setIsPremiumFeaturesExpanded] = useState(isPremiumFeaturesExpandedInitial);
   const [isFairnessExpanded, setIsFairnessExpanded] = useState(!!isFairnessPage);
   const [isCrcExpanded, setIsCrcExpanded] = useState(!!isCrcPage);
-  const [expandedCrcCategories, setExpandedCrcCategories] = useState<Record<string, boolean>>(
-    currentCategory ? { [currentCategory]: true } : {}
-  );
+  const { expandedCrcCategories, setExpandedCrcCategories } = useCrcCategoryExpansion(currentCategory);
   const [isSettingsExpanded, setIsSettingsExpanded] = useState(isSettingsExpandedInitial);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("Choose Your Plan");
@@ -464,18 +463,7 @@ const AssessmentTreeNavigation: React.FC<AssessmentTreeNavigationProps> = ({
     return () => window.clearTimeout(timeoutId);
   }, [activeDomainId, currentPracticeId, currentQuestionIndex]);
 
-  // Synchronize CRC category expansion with the current route-selected category
-  // Collapse all other categories when navigating to a new one to prevent endless scrolling
-  useEffect(() => {
-    if (currentCategory) {
-      setExpandedCrcCategories(prev => {
-        // If only the current category is expanded and nothing else, skip update
-        const keys = Object.keys(prev).filter(k => prev[k]);
-        if (keys.length === 1 && keys[0] === currentCategory) return prev;
-        return { [currentCategory]: true };
-      });
-    }
-  }, [currentCategory]);
+
 
   const toggleDomain = (domainId: string) => {
     setExpandedDomainId((prev) => (prev === domainId ? null : domainId));

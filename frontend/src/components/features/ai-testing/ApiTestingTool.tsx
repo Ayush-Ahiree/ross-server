@@ -315,7 +315,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
               </button>
               <div className="h-5 w-px bg-border shrink-0" />
               <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                <HeaderIcon className="w-4 h-4 text-primary shrink-0" style={{ color: "var(--section-premium)" }} />
+                <HeaderIcon className="w-4 h-4 shrink-0" style={{ color: "var(--section-premium)" }} />
                 <h1 className="text-sm font-bold text-foreground truncate">
                   {COPY[mode].heroTitle}
                 </h1>
@@ -629,7 +629,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
                     border-input focus:border-primary
                     text-foreground
                     placeholder-muted-foreground
-                    focus:outline-none focus:ring-2 focus:ring-primary
+                    focus:outline-none focus:ring-2 focus:ring-primary/20
                     disabled:opacity-50 disabled:cursor-not-allowed
                   `}
                 />
@@ -698,7 +698,7 @@ export default function ApiTestingTool({ mode }: ApiTestingToolProps) {
                     border-input focus:border-primary
                     text-foreground
                     placeholder-muted-foreground
-                    focus:outline-none focus:ring-2 focus:ring-primary
+                    focus:outline-none focus:ring-2 focus:ring-primary/20
                     disabled:opacity-50 disabled:cursor-not-allowed
                   `}
                 />

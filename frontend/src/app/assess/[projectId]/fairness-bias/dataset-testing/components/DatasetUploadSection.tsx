@@ -129,7 +129,7 @@ export const DatasetUploadSection = ({
                                             <p className="font-medium text-foreground">{formatBytes(fileMeta.size)}</p>
                                         </CardContent>
                                     </Card>
-                                    <Card className="card-google-green border border-emerald-500/25 shadow-2xs">
+                                    <Card className="card-google-green border border-success/40 shadow-2xs">
                                         <CardContent className="p-4">
                                             <p className="text-xs text-muted-foreground uppercase tracking-wide">Uploaded</p>
                                             <p className="font-medium text-foreground">
