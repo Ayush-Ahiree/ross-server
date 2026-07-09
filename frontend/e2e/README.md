@@ -1,7 +1,7 @@
 # UI E2E tests (Playwright)
 
-Browser-driven end-to-end tests for the MATUR.ai frontend. Everything is driven
-through the **real UI** with **component-based locators** (getByRole / getByText /
+Browser-driven end-to-end tests for the MATUR.ai frontend, using the
+Page Object Model. Locators are component-based (getByRole / getByText /
 getByPlaceholder — no CSS selectors), so the tests read like the product.
 
 Auth uses the app's real login; the JWT lives in `localStorage["auth_token"]`,
@@ -30,42 +30,47 @@ npm run test:e2e -- project-lifecycle         # just create/delete
 npm run test:e2e -- aima-report               # full assessment → report (slow)
 npm run test:e2e:ui                           # interactive
 npm run test:e2e:report                       # open last HTML report
-
-# or, only from the frontend/ directory:
-npx playwright test aima-report
 ```
 
 ## Layout
 
 ```
-playwright.config.js          setup → chromium projects; 8-min timeout for the AIMA walk
+playwright.config.js          setup → chromium project
 e2e/
 ├─ constants.js               storage-state path, creds, answer options
 ├─ auth.setup.js              logs in once, saves signed-in state
-├─ support/
-│  ├─ selectors.js            component-based locators, grouped by screen  ← extend here
-│  └─ flows.js                reusable UI flows (create / start / answer-all / delete)
+├─ pages/                     page objects, one class per screen  ← extend here
+│  ├─ auth.page.js
+│  ├─ dashboard.page.js
+│  ├─ assessment.page.js      AIMA question flow
+│  ├─ report.page.js          AIMA report
+│  ├─ premium-features.page.js
+│  ├─ wizard.page.js          AI System Profile Wizard
+│  └─ crc.page.js
 └─ tests/
    ├─ project-lifecycle.spec.js   create a project, then delete it
-   └─ aima-report.spec.js         create → answer full AIMA → evaluate report → download
+   ├─ aima-report.spec.js         all 3 answer states, edit + resubmit, nav/notes,
+   │                              missing-answers dialog
+   ├─ premium-feature.spec.js     disabled — CRC + premium suite coverage
+   └─ fully-compliant.spec.js     disabled — CRC with full evidence trail
 ```
 
-Adding coverage later (premium features, settings): add locators to
-`support/selectors.js`, compose flows in `support/flows.js`, and write a new spec
-under `tests/`. Keep locators role/text-based.
+Only AIMA coverage is active right now. `premium-feature.spec.js` and
+`fully-compliant.spec.js` are commented out in full (uncomment to re-enable);
+their page objects (`premium-features.page.js`, `wizard.page.js`, `crc.page.js`)
+are already in place.
+
+Add new locators/actions as methods on the relevant page object; write a new
+spec under `tests/`.
 
 ## Notes
 
-- **The AIMA spec answers ~145 questions in the UI** (walks every question via
-  "Next", then submits), so it takes a few minutes. Answering every question
-  "Yes" yields a perfect 3.00 overall score, which the report assertion checks.
-- **Download Report is currently gated by AI insights.** On the report page the
-  "Download Report" button is disabled and shows "Preparing insights..." until
-  the AI-insights job finishes. In the current deployment that job never
-  completes, so the button never enables and the PDF can't be downloaded — the
-  download step fails with an explicit message. This is a real product issue, not
-  a test bug; the step will pass unchanged once insights complete (or against an
-  environment where the AI backend is configured).
-- Seeding specs create and delete throwaway projects on the test account — use a
-  dedicated test account, never a real customer's.
-```
+- Answering every question "Yes" yields 3.00; "Partially" yields 1.50; "No"
+  yields a score below the app's Level 1 threshold, so the report shows a
+  "progress to Level 1 %" figure instead of a plain score.
+- Download verification is disabled across the specs — the "Download Report"
+  button is gated behind an AI-insights job that can take a while. Report
+  content (score, questions-evaluated count, domain breakdown) is checked
+  instead; a dedicated download check will be added separately.
+- Seeding specs create and delete throwaway projects — use a dedicated test
+  account, never a real customer's.
