@@ -51,7 +51,7 @@ function AssessmentLayoutContent({ children }: { children: React.ReactNode }) {
     const isVulnerabilityAssessmentPage = pathname.includes("/vulnerability-assessment");
     const isPremiumDomainsPage = pathname.includes("/premium-domains");
     const isPremiumFeaturesPage = pathname.includes("/premium-features");
-    const isSettingsPage = pathname.includes("/settings");
+    const isSettingsPage = pathname.includes("/settings") || pathname.includes("/team");
 
     const isPremiumRoute = 
         (isCrcPage ||
@@ -69,7 +69,7 @@ function AssessmentLayoutContent({ children }: { children: React.ReactNode }) {
 
     const isMainAssessment = pathname === `/assess/${projectId}`;
     const { isAimaQuestionPage } = getRouteFlags(pathname);
-    const hideLayoutBreadcrumb = isMainAssessment || isAimaQuestionPage || isCrcPage || isInventoryPage || isFairnessPage || isVulnerabilityAssessmentPage;
+    const hideLayoutBreadcrumb = isMainAssessment || isAimaQuestionPage || isCrcPage || isInventoryPage || isFairnessPage || isVulnerabilityAssessmentPage || isSettingsPage;
 
     const renderedChildren = isPremiumRoute ? (
         <WizardGateProvider projectId={projectId} featureName={getBreadcrumbLabel(pathname)}>

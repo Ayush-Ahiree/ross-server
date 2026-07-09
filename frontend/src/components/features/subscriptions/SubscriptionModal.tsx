@@ -215,15 +215,9 @@ export default function SubscriptionModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl p-0 overflow-y-auto max-h-[90vh] border-0 bg-transparent [&>button]:hidden">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-          className="bg-card rounded-3xl p-8 shadow-xl border border-border"
-        >
+        <div className="bg-card rounded-3xl p-8 shadow-xl border border-border">
           {/* Header */}
-          <DialogHeader className="text-center mb-8">
+          <DialogHeader className="text-center sm:text-center mb-8 flex flex-col items-center">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -239,10 +233,10 @@ export default function SubscriptionModal({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <DialogTitle className={`text-4xl font-extrabold tracking-tight ${isLimitReached ? 'text-primary' : ''}`}>
+              <DialogTitle className={`text-4xl font-extrabold tracking-tight text-center ${isLimitReached ? 'text-primary' : ''}`}>
                 {isLimitReached ? "Project Limit Reached" : title}
               </DialogTitle>
-              <div className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
+              <div className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed text-center">
                 {isLimitReached ? (
                   <>
                     You've reached the <span className="text-foreground font-bold underline decoration-primary/50 decoration-2 underline-offset-4">1-project limit</span> on the SEED plan. 
@@ -490,7 +484,7 @@ export default function SubscriptionModal({
               Maybe later
             </Button>
           </motion.div>
-        </motion.div>
+        </div>
       </DialogContent>
     </Dialog>
   );

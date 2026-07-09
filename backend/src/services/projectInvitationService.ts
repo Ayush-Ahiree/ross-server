@@ -7,7 +7,7 @@ import {
   ProjectRole,
 } from "./projectMembershipService";
 
-export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked";
+export type InvitationStatus = "pending" | "accepted" | "expired" | "revoked" | "declined";
 
 export interface ProjectInvitation {
   id: string;
@@ -183,8 +183,10 @@ export async function listInvitationsForProject(
   const result = await pool.query(
     `SELECT id, project_id, inviter_id, email, role, permissions, token, status, expires_at, created_at, updated_at
      FROM project_invitations
-     WHERE project_id = $1 AND status IN ('pending', 'sent')
-     AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+     WHERE project_id = $1 AND (
+       (status IN ('pending', 'sent') AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP))
+       OR status = 'declined'
+     )
      ORDER BY created_at DESC`,
     [projectId],
   );

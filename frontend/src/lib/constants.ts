@@ -1,3 +1,5 @@
+export const MAX_DESCRIPTION_LENGTH = 2000;
+
 export const PREMIUM_STATUS = ["basic_premium", "pro_premium", "trial"] as const;
 
 export const isPremiumStatus = (status?: string | null): boolean => {

@@ -16,7 +16,10 @@ import {
   IconInfoCircle,
   IconLoader2,
   IconLock,
+  IconAlertTriangle,
+  IconLayoutDashboard,
 } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
 import { AssessmentSkeleton } from "../../../../../components/Skeleton";
 import { safeRenderHTML, stripHTML } from "../../../../../lib/htmlUtils";
 import { buildAssessmentAnswerKey } from "../../../../../lib/assessmentValidation";
@@ -132,6 +135,7 @@ export default function AssessmentPage() {
 
   const assessmentContext = useOptionalAssessmentContext();
   const isReadOnly = assessmentContext?.isReadOnly || false;
+  const premiumStatus = isPremiumStatus(user?.subscription_status);
 
   const [practice, setPractice] = useState<Practice | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -223,17 +227,61 @@ export default function AssessmentPage() {
     return <AssessmentSkeleton />;
   }
 
+  const projectBreadcrumbHref = premiumStatus
+    ? `/assess/${projectId}/crc/dashboard`
+    : `/assess/${projectId}`;
+
   if (!practice) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">
-            Practice not found
-          </h1>
-          <p className="text-muted-foreground">
-            The requested practice could not be found.
-          </p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
+        {/* Decorative gradients */}
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl -z-10" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl -z-10" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 80, damping: 15 }}
+          className="w-full max-w-lg z-10"
+        >
+          <div className="bg-card/50 backdrop-blur-xl border border-border/80 rounded-3xl p-8 text-center shadow-2xl relative overflow-hidden">
+            <div className="flex justify-center mb-6">
+              <span className="text-xs font-bold uppercase tracking-[0.25em] text-primary/80 bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                MATUR.ai
+              </span>
+            </div>
+
+            <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-6 border border-destructive/20">
+              <IconAlertTriangle className="w-8 h-8 text-destructive" />
+            </div>
+
+            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-primary-light to-primary bg-clip-text text-transparent mb-4">
+              Practice Not Found
+            </h1>
+
+            <p className="text-muted-foreground mb-8 text-sm sm:text-base leading-relaxed">
+              The requested assessment practice could not be found. It may have been moved, deleted, or does not exist.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button
+                onClick={() => router.push(projectBreadcrumbHref)}
+                className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/95 transition-all font-bold rounded-xl py-6 px-6 shadow-md shadow-primary/20 cursor-pointer"
+              >
+                <IconLayoutDashboard className="w-4 h-4" />
+                Go to Project
+              </Button>
+              <Button
+                onClick={() => router.back()}
+                variant="outline"
+                className="flex items-center gap-2 border-border text-foreground hover:bg-muted transition-all font-bold rounded-xl py-6 px-6 cursor-pointer"
+              >
+                <IconArrowLeft className="w-4 h-4" />
+                Go Back
+              </Button>
+            </div>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -246,10 +294,6 @@ export default function AssessmentPage() {
   const progressPercent = questions.length > 0 ? Math.min(100, (answeredCount / questions.length) * 100) : 0;
 
   const projectName = assessmentContext?.projectName;
-  const premiumStatus = isPremiumStatus(user?.subscription_status);
-  const projectBreadcrumbHref = premiumStatus
-      ? `/assess/${projectId}/crc/dashboard`
-      : `/assess/${projectId}`;
 
   const DomainIcon = getDomainIcon(domainId);
 

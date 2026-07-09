@@ -26,10 +26,12 @@ const isPremiumUser = (status: string | undefined) => ["basic_premium", "pro_pre
 
 const router = Router();
 
+export const MAX_DESCRIPTION_LENGTH = 2000;
+
 // Create project schema validation
 const createProjectSchema = z.object({
   name: z.string().min(1).max(50),
-  description: z.string().optional(),
+  description: z.string().max(MAX_DESCRIPTION_LENGTH).optional().nullable(),
   aiSystemType: z.string().optional(),
   industry: z.string().optional(),
 });
@@ -264,6 +266,9 @@ router.put(
       values.push(trimmedName);
     }
     if (description !== undefined) {
+      if (description !== null && typeof description === "string" && description.length > MAX_DESCRIPTION_LENGTH) {
+        return res.status(400).json({ error: `Description must not exceed ${MAX_DESCRIPTION_LENGTH} characters` });
+      }
       fields.push(`description = $${idx++}`);
       values.push(description);
     }

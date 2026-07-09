@@ -989,10 +989,10 @@ router.post("/invitations/:token/decline", authenticateToken, async (req, res) =
     const { token } = req.params;
     const user = req.user!;
 
-    // Update status to revoked/declined atomically
+    // Update status to declined atomically
     const { rows } = await pool.query(
       `UPDATE project_invitations 
-       SET status = 'revoked', updated_at = CURRENT_TIMESTAMP 
+       SET status = 'declined', updated_at = CURRENT_TIMESTAMP 
        WHERE token = $1 
        AND TRIM(LOWER(email)) = TRIM(LOWER($2)) 
        AND status = 'pending'
