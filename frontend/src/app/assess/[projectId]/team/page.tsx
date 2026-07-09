@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { apiService } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,11 +49,14 @@ import {
     IconPencil,
     IconAlertTriangle,
     IconSend,
-    IconX
+    IconX,
+    IconArrowLeft,
+    IconSettings
 } from "@tabler/icons-react";
 import ProjectSettingsTabs from "@/components/features/projects/ProjectSettingsTabs";
 import SubscriptionModal from "@/components/features/subscriptions/SubscriptionModal";
 import { isPremiumStatus } from "@/lib/constants";
+import { Breadcrumb } from "@/components/shared/Breadcrumb";
 
 export interface ProjectMember {
     id: string;
@@ -72,9 +75,11 @@ export interface Invitation {
 
 export default function TeamManagementPage() {
     const { projectId } = useParams() as { projectId: string };
+    const router = useRouter();
     const { user, isAuthenticated } = useAuth();
     // Removed useAssessmentContext as role is not present
 
+    const [projectName, setProjectName] = useState("");
     const [members, setMembers] = useState<ProjectMember[]>([]);
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [loading, setLoading] = useState(true);
@@ -105,7 +110,11 @@ export default function TeamManagementPage() {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const memRes = await apiService.getProjectMembers(projectId);
+            const [memRes, projectRes] = await Promise.all([
+                apiService.getProjectMembers(projectId),
+                apiService.getProject(projectId)
+            ]);
+            setProjectName(projectRes.name);
             const fetchedMembers = (memRes.members || []).map((m: any) => ({
                 ...m,
                 canonicalId: m.user_id || m.id
@@ -217,20 +226,49 @@ export default function TeamManagementPage() {
         );
     }
 
+    const projectBreadcrumbHref = isPremium
+        ? `/assess/${projectId}/crc/dashboard`
+        : `/assess/${projectId}`;
+
     return (
-        <div className="space-y-6 max-w-5xl mx-auto pb-12">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-primary via-primary to-primary">
-                        Project Settings
-                    </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Manage your project details and team access.
-                    </p>
+        <div className="flex-1 flex flex-col w-full">
+            {/* Header */}
+            <div className="bg-sidebar border-b border-sidebar-border px-8 py-3 flex-none sticky top-0 z-20 shadow-xs w-full mb-8">
+                <div className="max-w-7xl mx-auto flex flex-col gap-2">
+                    {/* Top: Breadcrumb */}
+                    <div className="flex items-center justify-between text-xs">
+                        <Breadcrumb
+                            projectName={projectName || "Loading..."}
+                            projectHref={projectBreadcrumbHref}
+                            items={[{ label: "Project Settings" }]}
+                        />
+                    </div>
+
+                    {/* Bottom: Main row */}
+                    <div className="flex items-center justify-between gap-4 mt-1">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button
+                                onClick={() => router.back()}
+                                type="button"
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-border/60 hover:bg-muted text-xs text-foreground/80 hover:text-foreground transition-all shadow-2xs shrink-0 cursor-pointer"
+                            >
+                                <IconArrowLeft className="w-3.5 h-3.5" />
+                                Back
+                            </button>
+                            <div className="h-5 w-px bg-border shrink-0" />
+                            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                                <IconSettings className="w-4 h-4 text-primary shrink-0" style={{ color: "var(--section-settings)" }} />
+                                <h1 className="text-sm font-bold text-foreground truncate">
+                                    Project Settings
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <ProjectSettingsTabs projectId={projectId} />
+            <div className="max-w-5xl mx-auto px-8 w-full pb-12 space-y-6">
+                <ProjectSettingsTabs projectId={projectId} />
 
             {isOwner && (
                 isPremium ? (
@@ -571,6 +609,7 @@ export default function TeamManagementPage() {
                 title="Unlock Premium to Access Teams"
                 description="Upgrade to premium to invite your colleagues and collaborate on assessments together."
             />
+            </div>
         </div>
     );
 }

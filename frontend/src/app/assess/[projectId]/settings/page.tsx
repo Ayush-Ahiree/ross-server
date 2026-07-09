@@ -6,14 +6,16 @@ import { apiService, Project } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { IconLoader2, IconSettings } from "@tabler/icons-react";
+import { IconLoader2, IconSettings, IconArrowLeft } from "@tabler/icons-react";
 import ProjectEditForm from "@/components/features/projects/ProjectEditForm";
 import ProjectSettingsTabs from "@/components/features/projects/ProjectSettingsTabs";
+import { Breadcrumb } from "@/components/shared/Breadcrumb";
+import { isPremiumStatus } from "@/lib/constants";
 
 export default function ProjectSettingsPage() {
     const router = useRouter();
     const { projectId } = useParams() as { projectId: string };
-    const { isAuthenticated, loading: authLoading } = useAuth();
+    const { isAuthenticated, loading: authLoading, user } = useAuth();
     const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -123,45 +125,76 @@ export default function ProjectSettingsPage() {
         );
     }
 
+    const premiumStatus = user?.subscription_status ? isPremiumStatus(user.subscription_status) : false;
+    const projectBreadcrumbHref = premiumStatus
+        ? `/assess/${projectId}/crc/dashboard`
+        : `/assess/${projectId}`;
+
     return (
-        <div className="space-y-6 max-w-4xl mx-auto pb-12">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-primary via-primary to-primary">
-                        Project Settings
-                    </h1>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Manage your project details and team access.
-                    </p>
+        <div className="flex-1 flex flex-col w-full">
+            {/* Header */}
+            <div className="bg-sidebar border-b border-sidebar-border px-8 py-3 flex-none sticky top-0 z-20 shadow-xs w-full mb-8">
+                <div className="max-w-7xl mx-auto flex flex-col gap-2">
+                    {/* Top: Breadcrumb */}
+                    <div className="flex items-center justify-between text-xs">
+                        <Breadcrumb
+                            projectName={project.name || "Loading..."}
+                            projectHref={projectBreadcrumbHref}
+                            items={[{ label: "Project Settings" }]}
+                        />
+                    </div>
+
+                    {/* Bottom: Main row */}
+                    <div className="flex items-center justify-between gap-4 mt-1">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <button
+                                onClick={() => router.back()}
+                                type="button"
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-900 border border-border/60 hover:bg-muted text-xs text-foreground/80 hover:text-foreground transition-all shadow-2xs shrink-0 cursor-pointer"
+                            >
+                                <IconArrowLeft className="w-3.5 h-3.5" />
+                                Back
+                            </button>
+                            <div className="h-5 w-px bg-border shrink-0" />
+                            <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                                <IconSettings className="w-4 h-4 text-primary shrink-0" style={{ color: "var(--section-settings)" }} />
+                                <h1 className="text-sm font-bold text-foreground truncate">
+                                    Project Settings
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <ProjectSettingsTabs projectId={projectId} />
+            <div className="max-w-4xl mx-auto px-8 w-full pb-12 space-y-6">
+                <ProjectSettingsTabs projectId={projectId} />
 
-            <Card className="border-primary/20 shadow-md ring-1 ring-primary/5">
-                <CardHeader className="bg-primary/5 border-b border-primary/10 pb-4">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <IconSettings className="w-5 h-5 text-primary" />
-                        Project Details
-                    </CardTitle>
-                    <CardDescription>
-                        General information about your AI system and project assessment.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-8">
-                    <ProjectEditForm
-                        initialData={{
-                            name: project.name,
-                            description: project.description || "",
-                            aiSystemType: project.ai_system_type || "",
-                            industry: project.industry || "",
-                        }}
-                        onSubmit={handleUpdateProject}
-                        isLoading={saving}
-                        submitLabel="Update Project"
-                    />
-                </CardContent>
-            </Card>
+                <Card className="border-primary/20 shadow-md ring-1 ring-primary/5">
+                    <CardHeader className="bg-primary/5 border-b border-primary/10 pb-4">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <IconSettings className="w-5 h-5 text-primary" />
+                            Project Details
+                        </CardTitle>
+                        <CardDescription>
+                            General information about your AI system and project assessment.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-8">
+                        <ProjectEditForm
+                            initialData={{
+                                name: project.name,
+                                description: project.description || "",
+                                aiSystemType: project.ai_system_type || "",
+                                industry: project.industry || "",
+                            }}
+                            onSubmit={handleUpdateProject}
+                            isLoading={saving}
+                            submitLabel="Update Project"
+                        />
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
