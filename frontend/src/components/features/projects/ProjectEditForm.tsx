@@ -85,11 +85,19 @@ export default function ProjectEditForm({
         <Label htmlFor="project-description">Description</Label>
         <Textarea
           id="project-description"
-          value={data.description}
+          value={data.description || ""}
           onChange={(e) => setData({ ...data, description: e.target.value })}
           placeholder="Describe your AI system"
           rows={4}
+          maxLength={2000}
         />
+        <div className="flex justify-end pt-1">
+          <span
+            className={`text-[10px] ${(data.description || "").length >= 2000 ? "text-destructive font-bold" : "text-muted-foreground"}`}
+          >
+            {(data.description || "").length}/2000
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

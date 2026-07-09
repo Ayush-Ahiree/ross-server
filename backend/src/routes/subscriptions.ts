@@ -227,7 +227,7 @@ router.get("/status", authenticateToken, async (req, res) => {
 router.get("/details", authenticateToken, async (req, res) => {
   try {
     const userResult = await pool.query(
-      "SELECT id, subscription_status, stripe_customer_id, stripe_subscription_id, created_at, last_subscription_sync FROM users WHERE id = $1",
+      "SELECT id, subscription_status, stripe_customer_id, stripe_subscription_id, created_at, last_subscription_sync, trial_started_at, trial_ends_at FROM users WHERE id = $1",
       [req.user!.id],
     );
 
@@ -241,6 +241,26 @@ router.get("/details", authenticateToken, async (req, res) => {
       subscription_status: user.subscription_status,
       signup_date: user.created_at,
     };
+
+    if (user.subscription_status === 'trial') {
+      const trialEnds = user.trial_ends_at ? new Date(user.trial_ends_at).getTime() : 0;
+      const now = Date.now();
+      const diffMs = trialEnds - now;
+      const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+      baseResponse.plan = {
+        id: "trial",
+        name: "Free Trial",
+        status: "trialing",
+        cancel_at_period_end: false,
+        current_period_start: user.trial_started_at,
+        current_period_end: user.trial_ends_at,
+        days_remaining: daysRemaining,
+        renewal_date: user.trial_ends_at,
+        trial_end: user.trial_ends_at,
+      };
+      return res.json({ ...baseResponse, invoices: [] });
+    }
 
     if (!user.stripe_customer_id) {
       return res.json({ ...baseResponse, plan: null, invoices: [] });

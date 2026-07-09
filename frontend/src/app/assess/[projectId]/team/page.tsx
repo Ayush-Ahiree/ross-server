@@ -199,11 +199,11 @@ export default function TeamManagementPage() {
         setProcessing(true);
         try {
             await apiService.revokeProjectInvitation(projectId, invitationToRevoke.id);
-            showToast.success("Invitation revoked");
+            showToast.success(invitationToRevoke.status === "declined" ? "Invitation dismissed" : "Invitation revoked");
             setInvitationToRevoke(null);
             fetchData();
         } catch (err: any) {
-            showToast.error(err.message || "Failed to revoke invitation");
+            showToast.error(err.message || "Failed to process invitation");
         } finally {
             setProcessing(false);
         }
@@ -410,12 +410,12 @@ export default function TeamManagementPage() {
                 </CardContent>
             </Card>
 
-            {/* Pending Invitations */}
+            {/* Pending & Declined Invitations */}
             {isOwner && invitations.length > 0 && (
                 <Card className="shadow-sm border-amber-200/50 dark:border-amber-900/50">
                     <CardHeader className="bg-amber-50/30 dark:bg-amber-900/10 border-b border-amber-100 dark:border-amber-900/30 pb-4">
                         <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-500">
-                            Pending Invitations
+                            Pending &amp; Declined Invitations
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -437,19 +437,36 @@ export default function TeamManagementPage() {
                                                 <Badge variant="outline">{inv.role}</Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex items-center text-amber-600 dark:text-amber-500 text-sm">
-                                                    Pending
-                                                </div>
+                                                {inv.status === "declined" ? (
+                                                    <span className="text-destructive font-semibold text-xs uppercase tracking-wider">
+                                                        Declined
+                                                    </span>
+                                                ) : (
+                                                    <div className="flex items-center text-amber-600 dark:text-amber-500 text-sm">
+                                                        Pending
+                                                    </div>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-destructive hover:bg-destructive/10"
-                                                    onClick={() => setInvitationToRevoke(inv)}
-                                                >
-                                                    <IconX className="w-4 h-4 mr-1" /> Revoke
-                                                </Button>
+                                                {inv.status === "declined" ? (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                                                        onClick={() => setInvitationToRevoke(inv)}
+                                                    >
+                                                        <IconTrash className="w-4 h-4 mr-1" /> Dismiss
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-destructive hover:bg-destructive/10"
+                                                        onClick={() => setInvitationToRevoke(inv)}
+                                                    >
+                                                        <IconX className="w-4 h-4 mr-1" /> Revoke
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -519,22 +536,30 @@ export default function TeamManagementPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Revoke Invitation Modal */}
+            {/* Revoke/Dismiss Invitation Modal */}
             <Dialog open={!!invitationToRevoke} onOpenChange={(open) => !open && setInvitationToRevoke(null)}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Revoke Invitation</DialogTitle>
+                        <DialogTitle>
+                            {invitationToRevoke?.status === "declined" ? "Dismiss Invitation Log" : "Revoke Invitation"}
+                        </DialogTitle>
                     </DialogHeader>
                     <div className="py-2">
                         <p className="text-sm">
-                            Are you sure you want to revoke the invitation sent to <strong>{invitationToRevoke?.email}</strong>?
+                            {invitationToRevoke?.status === "declined"
+                                ? `Are you sure you want to dismiss the declined invitation record for ${invitationToRevoke?.email}?`
+                                : `Are you sure you want to revoke the invitation sent to ${invitationToRevoke?.email}?`}
                         </p>
                     </div>
                     <div className="flex justify-end space-x-2 mt-4">
                         <Button variant="outline" onClick={() => setInvitationToRevoke(null)}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleRevokeInvitation} disabled={processing}>
+                        <Button
+                            variant={invitationToRevoke?.status === "declined" ? "secondary" : "destructive"}
+                            onClick={handleRevokeInvitation}
+                            disabled={processing}
+                        >
                             {processing && <IconLoader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            Revoke
+                            {invitationToRevoke?.status === "declined" ? "Dismiss" : "Revoke"}
                         </Button>
                     </div>
                 </DialogContent>

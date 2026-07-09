@@ -29,7 +29,7 @@ const router = Router();
 // Create project schema validation
 const createProjectSchema = z.object({
   name: z.string().min(1).max(50),
-  description: z.string().optional(),
+  description: z.string().max(2000).optional().nullable(),
   aiSystemType: z.string().optional(),
   industry: z.string().optional(),
 });
@@ -264,6 +264,9 @@ router.put(
       values.push(trimmedName);
     }
     if (description !== undefined) {
+      if (description !== null && typeof description === "string" && description.length > 2000) {
+        return res.status(400).json({ error: "Description must not exceed 2000 characters" });
+      }
       fields.push(`description = $${idx++}`);
       values.push(description);
     }

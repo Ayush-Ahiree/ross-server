@@ -949,7 +949,13 @@ export default function DashboardPage() {
                 }
                 placeholder="Describe your AI system"
                 rows={3}
+                maxLength={2000}
               />
+              <div className="flex justify-end pt-1">
+                <span className={`text-[10px] ${(newProject.description || '').length >= 2000 ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
+                  {(newProject.description || '').length}/2000
+                </span>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>AI System Type</Label>
