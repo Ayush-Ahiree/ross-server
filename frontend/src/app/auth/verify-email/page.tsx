@@ -129,7 +129,7 @@ export default function VerifyEmailPage() {
 
                 {status === "error" && (
                   <div className="space-y-2">
-                    <Link href="/auth" className="btn-auth-submit">
+                    <Link href="/auth?isLogin=true" className="btn-auth-submit">
                       Try Again
                       <IconArrowRight className="h-4 w-4 ml-2" />
                     </Link>

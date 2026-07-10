@@ -280,6 +280,7 @@ export default function VerifyOTPPage() {
                           inputMode="numeric"
                           maxLength={1}
                           value={digit}
+                          aria-label={`Digit ${index + 1} of 6`}
                           onChange={(e) => handleOtpChange(index, e.target.value)}
                           onKeyDown={(e) => handleKeyDown(index, e)}
                           onPaste={index === 0 ? handlePaste : undefined}
