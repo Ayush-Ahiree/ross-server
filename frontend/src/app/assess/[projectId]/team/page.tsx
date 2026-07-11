@@ -175,7 +175,7 @@ export default function TeamManagementPage() {
             showToast.success(`Invitation sent to ${inviteEmail}`);
             setInviteEmail("");
             setInviteRole("EDITOR");
-            fetchData(); // refresh list
+            fetchData(true); // refresh list
         } catch (err: any) {
             showToast.error(err.message || "Failed to send invitation");
         } finally {
@@ -190,7 +190,7 @@ export default function TeamManagementPage() {
             await apiService.updateProjectMember(projectId, memberToEdit.canonicalId, { role: editRole });
             showToast.success("Member role updated");
             setMemberToEdit(null);
-            fetchData();
+            fetchData(true);
         } catch (err: any) {
             showToast.error(err.message || "Failed to update role");
         } finally {
@@ -205,7 +205,7 @@ export default function TeamManagementPage() {
             await apiService.removeProjectMember(projectId, memberToRemove.canonicalId);
             showToast.success("Member removed");
             setMemberToRemove(null);
-            fetchData();
+            fetchData(true);
         } catch (err: any) {
             showToast.error(err.message || "Failed to remove member");
         } finally {
@@ -220,7 +220,7 @@ export default function TeamManagementPage() {
             await apiService.revokeProjectInvitation(projectId, invitationToRevoke.id);
             showToast.success(invitationToRevoke.status === "declined" ? "Invitation dismissed" : "Invitation revoked");
             setInvitationToRevoke(null);
-            fetchData();
+            fetchData(true);
         } catch (err: any) {
             showToast.error(err.message || "Failed to process invitation");
         } finally {

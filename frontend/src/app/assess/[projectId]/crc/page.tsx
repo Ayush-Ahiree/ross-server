@@ -164,6 +164,31 @@ export default function CRCAssessmentPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [activeTab, setActiveTab] = useState<"evidence" | "notes" | "comments">("evidence");
 
+  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, tab: "evidence" | "notes" | "comments") => {
+    const tabs: ("evidence" | "notes" | "comments")[] = ["evidence", "notes", "comments"];
+    const currentIndex = tabs.indexOf(tab);
+    let nextIndex = currentIndex;
+
+    if (e.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % tabs.length;
+    } else if (e.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    } else {
+      return;
+    }
+
+    e.preventDefault();
+    const nextTab = tabs[nextIndex];
+    setActiveTab(nextTab);
+    
+    setTimeout(() => {
+      const nextButton = document.getElementById(`tab-${nextTab}`);
+      if (nextButton) {
+        nextButton.focus();
+      }
+    }, 0);
+  };
+
   // Derive current control from URL or category
   const currentIndex = useMemo(() => {
     if (controlIdParam) {
@@ -692,6 +717,8 @@ export default function CRCAssessmentPage() {
                   role="tab"
                   aria-selected={activeTab === "evidence"}
                   aria-controls="panel-evidence"
+                  tabIndex={activeTab === "evidence" ? 0 : -1}
+                  onKeyDown={(e) => handleTabKeyDown(e, "evidence")}
                   onClick={() => setActiveTab("evidence")}
                   className={`flex items-center gap-2 px-5 py-3.5 text-xs font-semibold border-b-2 transition-all ${
                     activeTab === "evidence"
@@ -709,6 +736,8 @@ export default function CRCAssessmentPage() {
                   role="tab"
                   aria-selected={activeTab === "notes"}
                   aria-controls="panel-notes"
+                  tabIndex={activeTab === "notes" ? 0 : -1}
+                  onKeyDown={(e) => handleTabKeyDown(e, "notes")}
                   onClick={() => setActiveTab("notes")}
                   className={`flex items-center gap-2 px-5 py-3.5 text-xs font-semibold border-b-2 transition-all ${
                     activeTab === "notes"
@@ -726,6 +755,8 @@ export default function CRCAssessmentPage() {
                   role="tab"
                   aria-selected={activeTab === "comments"}
                   aria-controls="panel-comments"
+                  tabIndex={activeTab === "comments" ? 0 : -1}
+                  onKeyDown={(e) => handleTabKeyDown(e, "comments")}
                   onClick={() => setActiveTab("comments")}
                   className={`flex items-center gap-2 px-5 py-3.5 text-xs font-semibold border-b-2 transition-all ${
                     activeTab === "comments"
@@ -746,9 +777,10 @@ export default function CRCAssessmentPage() {
                     id="panel-evidence"
                     role="tabpanel"
                     aria-labelledby="tab-evidence"
+                    tabIndex={0}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="space-y-4"
+                    className="space-y-4 focus:outline-none"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Status Dropdown */}
@@ -906,9 +938,10 @@ export default function CRCAssessmentPage() {
                     id="panel-notes"
                     role="tabpanel"
                     aria-labelledby="tab-notes"
+                    tabIndex={0}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="space-y-4"
+                    className="space-y-4 focus:outline-none"
                   >
                     <SecureTextarea
                       value={currentNote}
@@ -936,8 +969,10 @@ export default function CRCAssessmentPage() {
                     id="panel-comments"
                     role="tabpanel"
                     aria-labelledby="tab-comments"
+                    tabIndex={0}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
+                    className="focus:outline-none"
                   >
                     <CommentsPanel projectId={projectId} objectType="PROJECT" objectId={projectId} />
                   </motion.div>

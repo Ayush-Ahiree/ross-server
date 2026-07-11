@@ -652,6 +652,10 @@ export default function DashboardPage() {
                             }`}
                             onClick={handleProjectClick}
                             onKeyDown={(e) => {
+                              const target = e.target as HTMLElement;
+                              if (target && target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"]') !== e.currentTarget) {
+                                return;
+                              }
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
                                 handleProjectClick();
