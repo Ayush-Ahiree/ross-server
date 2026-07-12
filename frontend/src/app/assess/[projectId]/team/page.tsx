@@ -51,7 +51,8 @@ import {
     IconSend,
     IconX,
     IconArrowLeft,
-    IconSettings
+    IconSettings,
+    IconRefresh
 } from "@tabler/icons-react";
 import ProjectSettingsTabs from "@/components/features/projects/ProjectSettingsTabs";
 import SubscriptionModal from "@/components/features/subscriptions/SubscriptionModal";
@@ -83,6 +84,7 @@ export default function TeamManagementPage() {
     const [members, setMembers] = useState<ProjectMember[]>([]);
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [isOwner, setIsOwner] = useState(false);
 
     // Invite state
@@ -107,8 +109,12 @@ export default function TeamManagementPage() {
         }
     }, [projectId, isAuthenticated, user?.id]);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
+    const fetchData = useCallback(async (isRefresh = false) => {
+        if (isRefresh) {
+            setIsRefreshing(true);
+        } else {
+            setLoading(true);
+        }
         try {
             const [memRes, projectRes] = await Promise.all([
                 apiService.getProjectMembers(projectId),
@@ -145,7 +151,11 @@ export default function TeamManagementPage() {
             setIsOwner(false);
             setInvitations([]);
         } finally {
-            setLoading(false);
+            if (isRefresh) {
+                setIsRefreshing(false);
+            } else {
+                setLoading(false);
+            }
         }
     }, [projectId, user?.id, user?.email]);
 
@@ -165,7 +175,7 @@ export default function TeamManagementPage() {
             showToast.success(`Invitation sent to ${inviteEmail}`);
             setInviteEmail("");
             setInviteRole("EDITOR");
-            fetchData(); // refresh list
+            fetchData(true); // refresh list
         } catch (err: any) {
             showToast.error(err.message || "Failed to send invitation");
         } finally {
@@ -180,7 +190,7 @@ export default function TeamManagementPage() {
             await apiService.updateProjectMember(projectId, memberToEdit.canonicalId, { role: editRole });
             showToast.success("Member role updated");
             setMemberToEdit(null);
-            fetchData();
+            fetchData(true);
         } catch (err: any) {
             showToast.error(err.message || "Failed to update role");
         } finally {
@@ -195,7 +205,7 @@ export default function TeamManagementPage() {
             await apiService.removeProjectMember(projectId, memberToRemove.canonicalId);
             showToast.success("Member removed");
             setMemberToRemove(null);
-            fetchData();
+            fetchData(true);
         } catch (err: any) {
             showToast.error(err.message || "Failed to remove member");
         } finally {
@@ -210,7 +220,7 @@ export default function TeamManagementPage() {
             await apiService.revokeProjectInvitation(projectId, invitationToRevoke.id);
             showToast.success(invitationToRevoke.status === "declined" ? "Invitation dismissed" : "Invitation revoked");
             setInvitationToRevoke(null);
-            fetchData();
+            fetchData(true);
         } catch (err: any) {
             showToast.error(err.message || "Failed to process invitation");
         } finally {
@@ -354,11 +364,21 @@ export default function TeamManagementPage() {
 
             {/* Members List */}
             <Card className="shadow-sm">
-                <CardHeader className="border-b pb-4">
+                <CardHeader className="border-b pb-4 flex flex-row items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                         <IconMail className="w-5 h-5 text-muted-foreground" />
                         Project Members
                     </CardTitle>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => fetchData(true)} 
+                        disabled={isRefreshing}
+                        className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                        <IconRefresh className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                 </CardHeader>
                 <CardContent>
                     <div className="rounded-md border">

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { TrialConfirmationModal } from "./TrialConfirmationModal";
+import { useTrialStart } from "./useTrialStart";
 import {
   IconCrown,
   IconShield,
@@ -48,9 +50,9 @@ const HIGHLIGHTS = [
 ];
 
 export default function PremiumReEngagementPopup() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
+  const { confirmTrial, isStartingTrial } = useTrialStart();
   const [isVisible, setIsVisible] = useState(false);
-  const [isStartingTrial, setIsStartingTrial] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
   useEffect(() => {
@@ -89,25 +91,24 @@ export default function PremiumReEngagementPopup() {
     setIsVisible(false);
   };
 
-  const handleStartTrial = async () => {
-    setIsStartingTrial(true);
-    try {
-      await apiService.startTrial();
-      await refreshUser();
-      showToast.success("🎉 Your 7-day free trial has started!");
+  const [showTrialConfirm, setShowTrialConfirm] = useState(false);
+
+  const handleStartTrial = () => {
+    setShowTrialConfirm(true);
+  };
+
+  const handleConfirmTrial = () => {
+    confirmTrial(() => {
+      setShowTrialConfirm(false);
       setIsVisible(false);
       window.location.reload();
-    } catch (error: any) {
-      console.error("Failed to start trial:", error);
-      showToast.error(error.message || "Failed to start free trial.");
-    } finally {
-      setIsStartingTrial(false);
-    }
+    });
   };
 
   if (!isVisible) return null;
 
   return (
+    <>
     <Dialog open={isVisible} onOpenChange={(open) => !open && handleDismiss()}>
       <DialogContent className="max-w-lg p-0 overflow-y-auto max-h-[90vh] border-0 bg-transparent [&>button]:hidden">
         <AnimatePresence>
@@ -228,5 +229,13 @@ export default function PremiumReEngagementPopup() {
         </AnimatePresence>
       </DialogContent>
     </Dialog>
+
+    <TrialConfirmationModal
+      isOpen={showTrialConfirm}
+      onClose={() => setShowTrialConfirm(false)}
+      onConfirm={handleConfirmTrial}
+      isLoading={isStartingTrial}
+    />
+    </>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { TrialConfirmationModal } from "./TrialConfirmationModal";
+import { useTrialStart } from "./useTrialStart";
 import {
   IconCircleCheck,
   IconCrown,
@@ -80,9 +82,10 @@ export default function PathSelectionModal({
   onSelectPremium,
   onUpgradeClick,
 }: PathSelectionModalProps) {
-  const { user, refreshUser } = useAuth();
-  const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const { user } = useAuth();
+  const { confirmTrial, isStartingTrial } = useTrialStart();
   const [isSelectingAima, setIsSelectingAima] = useState(false);
+  const [showTrialConfirm, setShowTrialConfirm] = useState(false);
 
   const isPaidUser = user?.subscription_status && user?.subscription_status !== "free";
   const hasUsedTrial = user?.trial_used;
@@ -112,21 +115,18 @@ export default function PathSelectionModal({
       return;
     }
 
-    setIsStartingTrial(true);
-    try {
-      await apiService.startTrial();
-      await refreshUser();
-      showToast.success("🎉 Your 7-day free trial has started!");
+    setShowTrialConfirm(true);
+  };
+
+  const handleConfirmTrial = () => {
+    confirmTrial(() => {
+      setShowTrialConfirm(false);
       onSelectPremium();
-    } catch (error: any) {
-      console.error("Failed to start trial:", error);
-      showToast.error(error.message || "Failed to start free trial.");
-    } finally {
-      setIsStartingTrial(false);
-    }
+    });
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent
         className="max-w-5xl p-0 overflow-y-auto max-h-[95vh] border-0 bg-transparent [&>button]:hidden"
@@ -317,5 +317,13 @@ export default function PathSelectionModal({
         </motion.div>
       </DialogContent>
     </Dialog>
+
+    <TrialConfirmationModal
+      isOpen={showTrialConfirm}
+      onClose={() => setShowTrialConfirm(false)}
+      onConfirm={handleConfirmTrial}
+      isLoading={isStartingTrial}
+    />
+    </>
   );
 }

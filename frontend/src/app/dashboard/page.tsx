@@ -632,9 +632,36 @@ export default function DashboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       whileHover={{ y: -5 }}
                     >
-                      <Card className={`h-full flex flex-col justify-between hover:shadow-xl transition-all duration-300 border ${theme.border} ${theme.shadow} ${
-                        ["card-google-blue", "card-google-red", "card-google-yellow", "card-google-green", "card-google-purple"][index % 5]
-                      }`}>
+                      {(() => {
+                        const handleProjectClick = () => {
+                          if (project.status === 'completed') {
+                            router.push(getProjectReportHref(project.id));
+                          } else if (project.status === "not_started") {
+                            setPathSelectionProjectId(project.id);
+                            setShowPathSelection(true);
+                          } else {
+                            router.push(getProjectEditHref(project.id));
+                          }
+                        };
+                        return (
+                          <Card
+                            role="button"
+                            tabIndex={0}
+                            className={`h-full flex flex-col justify-between hover:shadow-xl transition-all duration-300 cursor-pointer border ${theme.border} ${theme.shadow} ${
+                              ["card-google-blue", "card-google-red", "card-google-yellow", "card-google-green", "card-google-purple"][index % 5]
+                            }`}
+                            onClick={handleProjectClick}
+                            onKeyDown={(e) => {
+                              const target = e.target as HTMLElement;
+                              if (target && target.closest('button, a, input, select, textarea, [role="button"], [role="menuitem"]') !== e.currentTarget) {
+                                return;
+                              }
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                handleProjectClick();
+                              }
+                            }}
+                          >
                         <CardHeader className="pb-3 flex-none">
                           <div className="flex justify-between items-start w-full min-w-0">
                             <div className="flex-1 mr-2 min-w-0">
@@ -670,7 +697,13 @@ export default function DashboardPage() {
                             </div>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                <Button
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                >
                                   <span className="sr-only">Open menu</span>
                                   <IconDotsVertical className="h-4 w-4" />
                                 </Button>
@@ -717,7 +750,10 @@ export default function DashboardPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => router.push(getProjectEditHref(project.id))}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(getProjectEditHref(project.id));
+                                }}
                                 className="h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1 bg-transparent hover:bg-transparent shadow-none border-0 text-foreground/80 hover:text-foreground"
                               >
                                 <IconPencil className="w-3.5 h-3.5" />
@@ -726,7 +762,10 @@ export default function DashboardPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => router.push(getProjectReportHref(project.id))}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(getProjectReportHref(project.id));
+                                }}
                                 className={`h-8 px-3.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs ${theme.btnSecondary}`}
                               >
                                 <IconChartBar className="w-3.5 h-3.5" />
@@ -738,7 +777,8 @@ export default function DashboardPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 if (project.status === "not_started") {
                                   setPathSelectionProjectId(project.id);
                                   setShowPathSelection(true);
@@ -757,6 +797,8 @@ export default function DashboardPage() {
                           )}
                         </CardFooter>
                       </Card>
+                      );
+                      })()}
                     </motion.div>
                   );
                 })}
