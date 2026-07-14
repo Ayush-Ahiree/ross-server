@@ -40,15 +40,18 @@ class WizardPage {
   }
 
   // Opens the wizard and fills it with a simple, low-risk profile, then
-  // applies it. Returns once the platform is unlocked.
-  async complete() {
+  // applies it. Returns once the platform is unlocked. Completing the wizard
+  // silently renames the project itself to `systemName` (the "Name of this
+  // AI system" field) — pass a name unique to your test if you need to find
+  // the project again afterwards (e.g. to delete it).
+  async complete(systemName = "Full Premium Feature") {
     await this.configureButton.scrollIntoViewIfNeeded().catch(() => {});
     await this.configureButton.click();
     await this.modalTitle.waitFor();
 
     // Section 1 — Project Setup
     await this.pick("Select scope type", /Single AI System/i);
-    await this.nameInput.fill("Full Premium Feature");
+    await this.nameInput.fill(systemName);
     await this.descInput.fill("E2E full premium feature CRC test system.").catch(() => {});
     await this.pick("Select primary use case", /Customer Service Chatbot/i);
     await this.next();

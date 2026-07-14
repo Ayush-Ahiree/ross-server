@@ -46,19 +46,25 @@ e2e/
 │  ├─ report.page.js          AIMA report
 │  ├─ premium-features.page.js
 │  ├─ wizard.page.js          AI System Profile Wizard
-│  └─ crc.page.js
+│  ├─ crc.page.js
+│  ├─ vulnerability-assessment.page.js  AI Vulnerability Assessment config screen
+│  └─ vulnerability-job.page.js         security-scan job-status screen
 └─ tests/
    ├─ project-lifecycle.spec.js   create a project, then delete it
    ├─ aima-report.spec.js         all 3 answer states, edit + resubmit, nav/notes,
    │                              missing-answers dialog
+   ├─ vulnerability-assessment.spec.js  configure + start a security scan
+   │                                    (stops once the job page is reached —
+   │                                    see TODO in the spec for what's left)
    ├─ premium-feature.spec.js     disabled — CRC + premium suite coverage
    └─ fully-compliant.spec.js     disabled — CRC with full evidence trail
 ```
 
-Only AIMA coverage is active right now. `premium-feature.spec.js` and
-`fully-compliant.spec.js` are commented out in full (uncomment to re-enable);
-their page objects (`premium-features.page.js`, `wizard.page.js`, `crc.page.js`)
-are already in place.
+Only AIMA and vulnerability-assessment (partial) coverage is active right
+now. `premium-feature.spec.js` and `fully-compliant.spec.js` are commented
+out in full (uncomment to re-enable); their page objects
+(`premium-features.page.js`, `wizard.page.js`, `crc.page.js`) are already in
+place.
 
 Add new locators/actions as methods on the relevant page object; write a new
 spec under `tests/`.

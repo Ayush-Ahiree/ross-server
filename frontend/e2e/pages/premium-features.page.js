@@ -47,15 +47,16 @@ class PremiumFeaturesPage {
 
   // Completes (and applies) the AI System Profile wizard that gates CRC /
   // premium features for a fresh premium project. Returns true if it ran the
-  // wizard, false if it was already applied.
-  async completeSystemProfileWizard(projectId) {
+  // wizard, false if it was already applied. See WizardPage.complete() re:
+  // systemName — it becomes the project's new display name.
+  async completeSystemProfileWizard(projectId, systemName) {
     await this.goto(projectId);
     await Promise.race([
       this.wizard.configureButton.waitFor({ timeout: 30_000 }).catch(() => {}),
       this.hubHeading.waitFor({ timeout: 30_000 }).catch(() => {}),
     ]);
     if (!(await this.wizard.configureButton.isVisible().catch(() => false))) return false; // already applied
-    await this.wizard.complete();
+    await this.wizard.complete(systemName);
     return true;
   }
 }
