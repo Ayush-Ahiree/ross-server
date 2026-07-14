@@ -351,23 +351,6 @@ export const callUserApiForPrompt = inngest.createFunction(
     });
 
     await step.run("store-response", async () => {
-      const jobResult = await pool.query(
-        `SELECT id, payload FROM evaluation_status WHERE job_id = $1`,
-        [jobId]
-      );
-
-      if (jobResult.rows.length === 0) {
-        throw new Error(`Job ${jobId} not found`);
-      }
-
-      const job = jobResult.rows[0];
-      const payload = (job.payload || {}) as FairnessApiJobPayloadExtended;
-      const userApiResponses: UserApiResponse[] = payload.userApiResponses || [];
-
-      const existingIndex = userApiResponses.findIndex(
-        (r) => r.promptIndex === promptIndex
-      );
-
       const userApiResponse: UserApiResponse = {
         promptIndex,
         category,
@@ -376,21 +359,15 @@ export const callUserApiForPrompt = inngest.createFunction(
         response: response,
       };
 
-      if (existingIndex >= 0) {
-        userApiResponses[existingIndex] = userApiResponse;
-      } else {
-        userApiResponses.push(userApiResponse);
-      }
-
       await pool.query(
         `UPDATE evaluation_status
          SET payload = jsonb_set(
            COALESCE(payload, '{}'::jsonb),
            '{userApiResponses}',
-           $1::jsonb
+           COALESCE(payload->'userApiResponses', '[]'::jsonb) || $1::jsonb
          )
          WHERE job_id = $2`,
-        [JSON.stringify(userApiResponses), jobId]
+        [JSON.stringify([userApiResponse]), jobId]
       );
     });
 
@@ -423,6 +400,18 @@ export const userApiCallAggregator = inngest.createFunction(
     }
 
     const allComplete = await step.run("process-completion", async () => {
+      const statusValue = success ? "success" : "failed";
+      await pool.query(
+        `UPDATE evaluation_status
+         SET payload = jsonb_set(
+           COALESCE(payload, '{}'::jsonb),
+           ARRAY['userApiCallStatuses', $1::text],
+           $2::jsonb
+         )
+         WHERE job_id = $3`,
+        [String(promptIndex), JSON.stringify(statusValue), jobId]
+      );
+
       const jobResult = await pool.query(
         `SELECT id, payload, total_prompts FROM evaluation_status WHERE job_id = $1`,
         [jobId]
@@ -441,25 +430,6 @@ export const userApiCallAggregator = inngest.createFunction(
       if (totalPrompts === 0) {
         throw new Error(`Job ${jobId} has no total_prompts set`);
       }
-
-      if (itemStatuses[promptIndex]) {
-        const completed = Object.keys(itemStatuses).length;
-        return { allComplete: completed >= totalPrompts, total: totalPrompts, completed };
-      }
-
-      itemStatuses[promptIndex] = success ? "success" : "failed";
-
-      // Update payload first
-      await pool.query(
-        `UPDATE evaluation_status
-         SET payload = jsonb_set(
-           COALESCE(payload, '{}'::jsonb),
-           '{userApiCallStatuses}',
-           $1::jsonb
-         )
-         WHERE job_id = $2`,
-        [JSON.stringify(itemStatuses), jobId]
-      );
 
       await updateJobProgress(jobId);
 

@@ -8,6 +8,12 @@ import {
     removeAnimations, fixSensitiveAnalysis
 } from "./pdfStyles";
 import { THRESHOLDS } from "../../constants";
+import { 
+    getStyleProxy, 
+    getProxyRule, 
+    acquireExportLock, 
+    releaseExportLock 
+} from "@/lib/pdfExport/pdfColorResolver";
 
 interface UsePdfExportProps {
     reportRef: RefObject<HTMLDivElement>;
@@ -35,9 +41,74 @@ export const usePdfExport = ({ reportRef, payload }: UsePdfExportProps) => {
         if (!reportRef.current || !payload) return;
         if (isExportingRef.current) return;
 
+        const acquired = await acquireExportLock();
+        if (!acquired) {
+            console.warn("Another PDF export is currently in progress. Aborting.");
+            return;
+        }
+
+        let originalDescriptor: any = null;
+        let originalGetComputedStyle: any = null;
+
         try {
             setIsExporting(true);
             isExportingRef.current = true;
+
+            // Apply color patches for html2canvas
+            if (typeof CSSStyleSheet !== "undefined") {
+                originalDescriptor = Object.getOwnPropertyDescriptor(CSSStyleSheet.prototype, "cssRules");
+                if (originalDescriptor) {
+                    Object.defineProperty(CSSStyleSheet.prototype, "cssRules", {
+                        get() {
+                            try {
+                                const rules = originalDescriptor.get.call(this);
+                                if (!rules) return rules;
+
+                                const filteredRules: any[] = [];
+                                for (let i = 0; i < rules.length; i++) {
+                                    filteredRules.push(getProxyRule(rules[i]));
+                                }
+
+                                const ruleList: any = {
+                                    length: filteredRules.length,
+                                    item(index: number) { return filteredRules[index]; },
+                                    [Symbol.iterator]() {
+                                        let i = 0;
+                                        return {
+                                            next() {
+                                                return i < filteredRules.length
+                                                    ? { value: filteredRules[i++], done: false }
+                                                    : { done: true };
+                                            }
+                                        };
+                                    }
+                                };
+                                filteredRules.forEach((rule, idx) => {
+                                    ruleList[idx] = rule;
+                                });
+                                Object.setPrototypeOf(ruleList, CSSRuleList.prototype);
+                                return ruleList;
+                            } catch (e) {
+                                return null;
+                            }
+                        },
+                        configurable: true
+                    });
+                }
+            }
+
+            if (typeof window !== "undefined") {
+                originalGetComputedStyle = window.getComputedStyle;
+                window.getComputedStyle = function(element, pseudoElt) {
+                    const style = originalGetComputedStyle.call(this, element, pseudoElt);
+                    const isInsidePdfContainer = element.closest("#pdf-export-container") || element.id === "pdf-export-container";
+                    if (isInsidePdfContainer) {
+                        return getStyleProxy(style);
+                    }
+                    return style;
+                };
+            }
+
             await new Promise(resolve => setTimeout(resolve, PDF_RENDERING_DELAY_MS));
 
             const [jsPDFModule, html2canvasModule] = await Promise.all([
@@ -387,6 +458,7 @@ export const usePdfExport = ({ reportRef, payload }: UsePdfExportProps) => {
 
             // Clone the report container for PDF-specific rendering
             const clone = reportRef.current.cloneNode(true) as HTMLElement;
+            clone.id = "pdf-export-container";
             clone.style.width = "1200px";
             clone.style.position = "absolute";
             clone.style.top = "0";
@@ -871,8 +943,17 @@ export const usePdfExport = ({ reportRef, payload }: UsePdfExportProps) => {
         } catch (error) {
             console.error("Failed to export PDF", error);
         } finally {
+            // Restore original descriptors/methods
+            if (originalDescriptor && typeof CSSStyleSheet !== "undefined") {
+                Object.defineProperty(CSSStyleSheet.prototype, "cssRules", originalDescriptor);
+            }
+            if (originalGetComputedStyle && typeof window !== "undefined") {
+                window.getComputedStyle = originalGetComputedStyle;
+            }
+
             setIsExporting(false);
             isExportingRef.current = false;
+            releaseExportLock();
         }
     }, [reportRef, payload]);
 

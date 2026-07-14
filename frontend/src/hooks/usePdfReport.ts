@@ -9,6 +9,13 @@ import {
 import { pdf } from "@react-pdf/renderer";
 import { AimaPdfDocument } from "../lib/pdfExport/AimaPdfDocument";
 
+import { 
+    getStyleProxy, 
+    getProxyRule, 
+    acquireExportLock, 
+    releaseExportLock 
+} from "../lib/pdfExport/pdfColorResolver";
+
 interface PdfExportOptions {
     reportRef: RefObject<HTMLDivElement>;
     fileName: string;
@@ -180,9 +187,73 @@ export const usePdfReport = ({
         if (!reportRef.current) return;
         if (isExportingRef.current) return;
 
+        const acquired = await acquireExportLock();
+        if (!acquired) {
+            console.warn("Another PDF export is currently in progress. Aborting.");
+            return;
+        }
+
+        let originalDescriptor: any = null;
+        let originalGetComputedStyle: any = null;
+
         try {
             setIsExporting(true);
             isExportingRef.current = true;
+
+            // Apply color patches for html2canvas
+            if (typeof CSSStyleSheet !== "undefined") {
+                originalDescriptor = Object.getOwnPropertyDescriptor(CSSStyleSheet.prototype, "cssRules");
+                if (originalDescriptor) {
+                    Object.defineProperty(CSSStyleSheet.prototype, "cssRules", {
+                        get() {
+                            try {
+                                const rules = originalDescriptor.get.call(this);
+                                if (!rules) return rules;
+
+                                const filteredRules: any[] = [];
+                                for (let i = 0; i < rules.length; i++) {
+                                    filteredRules.push(getProxyRule(rules[i]));
+                                }
+
+                                const ruleList: any = {
+                                    length: filteredRules.length,
+                                    item(index: number) { return filteredRules[index]; },
+                                    [Symbol.iterator]() {
+                                        let i = 0;
+                                        return {
+                                            next() {
+                                                return i < filteredRules.length
+                                                    ? { value: filteredRules[i++], done: false }
+                                                    : { done: true };
+                                            }
+                                        };
+                                    }
+                                };
+                                filteredRules.forEach((rule, idx) => {
+                                    ruleList[idx] = rule;
+                                });
+                                Object.setPrototypeOf(ruleList, CSSRuleList.prototype);
+                                return ruleList;
+                            } catch (e) {
+                                return null;
+                            }
+                        },
+                        configurable: true
+                    });
+                }
+            }
+
+            if (typeof window !== "undefined") {
+                originalGetComputedStyle = window.getComputedStyle;
+                window.getComputedStyle = function(element, pseudoElt) {
+                    const style = originalGetComputedStyle.call(this, element, pseudoElt);
+                    const isInsidePdfContainer = element.closest("#pdf-export-container") || element.id === "pdf-export-container";
+                    if (isInsidePdfContainer) {
+                        return getStyleProxy(style);
+                    }
+                    return style;
+                };
+            }
             
             // Wait for charts and animations to complete
             await new Promise(resolve => setTimeout(resolve, PDF_RENDERING_DELAY_MS));
@@ -207,16 +278,29 @@ export const usePdfReport = ({
             const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
             const { margin, headerHeight, footerHeight } = PDF_CONFIG;
             const usableWidth = pageWidth - 2 * margin; // 190mm
-            const contentTop = margin; // Start from top margin since we removed the 28mm header
+            const contentTop = headerHeight + 2; // Start below the header with 2mm buffer
             const contentBottom = pageHeight - footerHeight - 5;
             const usableHeight = contentBottom - contentTop;
 
             // Helper: Add header to current page
             const addPageHeader = (pdfDoc: any, pageNum: number, totalPages: number) => {
-                // We are now using a rich header component in the page itself,
-                // so we don't need the redundant blue bar header here.
-                // Reset text color for any subsequent drawing
-                pdfDoc.setTextColor(15, 23, 42); 
+                // Clear the header area with white rect first to avoid content bleed
+                pdfDoc.setFillColor(255, 255, 255);
+                pdfDoc.rect(0, 0, pageWidth, headerHeight, "F");
+
+                // FULL BLEED Header background - our primary blue (#0070ea)
+                pdfDoc.setFillColor(0, 112, 234); 
+                pdfDoc.rect(0, 0, pageWidth, headerHeight, "F");
+
+                // Report title - centered white text
+                pdfDoc.setFont("helvetica", "bold");
+                pdfDoc.setFontSize(10);
+                pdfDoc.setTextColor(255, 255, 255);
+                pdfDoc.text(reportTitle.toUpperCase(), pageWidth / 2, 17, { align: "center" });
+                
+                // Brand indicator - left-aligned white text
+                pdfDoc.setFontSize(9);
+                pdfDoc.text("MATUR.ai", margin, 17);
             };
 
             // Helper: Add footer to current page
@@ -453,12 +537,21 @@ export const usePdfReport = ({
         } catch (error) {
             console.error("Failed to export PDF", error);
         } finally {
+            // Restore original descriptors/methods
+            if (originalDescriptor && typeof CSSStyleSheet !== "undefined") {
+                Object.defineProperty(CSSStyleSheet.prototype, "cssRules", originalDescriptor);
+            }
+            if (originalGetComputedStyle && typeof window !== "undefined") {
+                window.getComputedStyle = originalGetComputedStyle;
+            }
+
             const container = document.getElementById("pdf-export-container");
             if (container && document.body.contains(container)) {
                 document.body.removeChild(container);
             }
             setIsExporting(false);
             isExportingRef.current = false;
+            releaseExportLock();
         }
     }, [reportRef, fileName, reportTitle, projectName, generatedAt, sectionSelector]);
 
