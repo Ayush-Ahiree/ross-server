@@ -926,6 +926,63 @@ button:enabled,
   color: var(--section-admin) !important;
 }
 
+/* Dark Mode Sidebar Section Overrides (Theme-aware RGB overrides) */
+.dark .sidebar-btn-dashboard[data-active="true"] {
+  background-color: rgba(92, 173, 252, 0.08) !important;
+}
+
+.dark .sidebar-btn-free {
+  color: rgba(95, 191, 73, 0.75) !important;
+}
+.dark .sidebar-btn-free svg {
+  color: rgba(95, 191, 73, 0.70) !important;
+}
+.dark .sidebar-btn-free:hover {
+  background-color: rgba(95, 191, 73, 0.08) !important;
+}
+.dark .sidebar-btn-free[data-active="true"] {
+  background-color: rgba(95, 191, 73, 0.12) !important;
+}
+
+.dark .sidebar-btn-premium {
+  color: rgba(255, 193, 0, 0.75) !important;
+}
+.dark .sidebar-btn-premium svg {
+  color: rgba(255, 193, 0, 0.70) !important;
+}
+.dark .sidebar-btn-premium:hover {
+  background-color: rgba(255, 193, 0, 0.08) !important;
+}
+.dark .sidebar-btn-premium[data-active="true"] {
+  background-color: rgba(255, 193, 0, 0.12) !important;
+}
+
+.dark .sidebar-btn-settings {
+  color: rgba(92, 173, 252, 0.75) !important;
+}
+.dark .sidebar-btn-settings svg {
+  color: rgba(92, 173, 252, 0.70) !important;
+}
+.dark .sidebar-btn-settings:hover {
+  background-color: rgba(92, 173, 252, 0.08) !important;
+}
+.dark .sidebar-btn-settings[data-active="true"] {
+  background-color: rgba(92, 173, 252, 0.12) !important;
+}
+
+.dark .sidebar-btn-admin {
+  color: rgba(139, 69, 250, 0.75) !important;
+}
+.dark .sidebar-btn-admin svg {
+  color: rgba(139, 69, 250, 0.70) !important;
+}
+.dark .sidebar-btn-admin:hover {
+  background-color: rgba(139, 69, 250, 0.08) !important;
+}
+.dark .sidebar-btn-admin[data-active="true"] {
+  background-color: rgba(139, 69, 250, 0.12) !important;
+}
+
 /* Custom Google Brand Cards - Solid subtle backgrounds */
 .card-google-indigo {
   background-color: rgba(102, 102, 204, 0.04) !important;

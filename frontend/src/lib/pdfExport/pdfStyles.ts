@@ -175,10 +175,12 @@ export const styleVerdictColors = (root: HTMLElement) => {
 
     applyColors("[class*='bg-green-50'], [class*='bg-success'], [class*='bg-emerald-50']", "#f0fdf4", "#10b981", "#065f46");
     applyColors("[class*='bg-amber-50'], [class*='bg-warning'], [class*='bg-yellow-50']", "#fffbeb", "#f59e0b", "#92400e");
+    applyColors("[class*='bg-orange']", "#fff7ed", "#f97316", "#c2410c");
     applyColors("[class*='bg-red-50'], [class*='bg-destructive'], [class*='bg-rose-50']", "#fef2f2", "#ef4444", "#991b1b");
 
     root.querySelectorAll("[class*='text-green'], [class*='text-emerald']").forEach(el => { (el as HTMLElement).style.setProperty("color", "#065f46", "important"); });
     root.querySelectorAll("[class*='text-amber'], [class*='text-yellow']").forEach(el => { (el as HTMLElement).style.setProperty("color", "#92400e", "important"); });
+    root.querySelectorAll("[class*='text-orange']").forEach(el => { (el as HTMLElement).style.setProperty("color", "#c2410c", "important"); });
     root.querySelectorAll("[class*='text-red'], [class*='text-rose']").forEach(el => { (el as HTMLElement).style.setProperty("color", "#991b1b", "important"); });
 };
 
@@ -287,10 +289,11 @@ export const styleTypography = (root: HTMLElement) => {
         });
         
         if (combinedText.trim()) {
-            textNodes.forEach(node => node.parentNode?.removeChild(node));
+            const firstTextNode = textNodes[0];
             const span = document.createElement("span");
             span.textContent = combinedText; // Keep original spaces and formatting!
-            container.appendChild(span);
+            container.insertBefore(span, firstTextNode);
+            textNodes.forEach(node => node.parentNode?.removeChild(node));
         }
 
         // If it contains an SVG or Lucide icon, or is a header, apply more aggressive alignment
