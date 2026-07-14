@@ -564,81 +564,81 @@ button:enabled,
   --radius: 0.75rem;
 
   /* Surfaces - Clean whites with subtle warmth */
-  --background: oklch(98% 0.003 240);
-  --foreground: oklch(18% 0.02 260);
+  --background: #f7f9fa;
+  --foreground: #0c121a;
 
   /* Cards & Popovers */
-  --card: oklch(100% 0 0);
-  --card-foreground: oklch(18% 0.02 260);
-  --popover: oklch(100% 0 0);
-  --popover-foreground: oklch(18% 0.02 260);
+  --card: #ffffff;
+  --card-foreground: #0c121a;
+  --popover: #ffffff;
+  --popover-foreground: #0c121a;
 
   /* Primary - Google Blue */
-  --primary: oklch(56% 0.21 254);
-  --primary-foreground: oklch(100% 0 0);
-  --primary-dark: oklch(42% 0.18 254);
-  --primary-light: oklch(73% 0.12 254);
+  --primary: #0070ea;
+  --primary-foreground: #ffffff;
+  --primary-dark: #0047ab;
+  --primary-light: #71abf2;
 
   /* Gradient Background variables */
-  --background-start: oklch(98% 0.003 240);
-  --background-end: oklch(98% 0.003 240);
+  --background-start: #f7f9fa;
+  --background-end: #f7f9fa;
 
   /* Secondary - Light blue tint */
-  --secondary: oklch(96% 0.02 250);
-  --secondary-foreground: oklch(44% 0.12 250);
-  --secondary-hover: oklch(92% 0.03 250);
+  --secondary: #e8f3ff;
+  --secondary-foreground: #085491;
+  --secondary-hover: #d6e7f8;
 
   /* Muted - Neutral grays */
-  --muted: oklch(95% 0.005 240);
-  --muted-foreground: oklch(55% 0.01 240);
+  --muted: #ebeff1;
+  --muted-foreground: #6c7277;
 
   /* Accent - Subtle blue highlight */
-  --accent: oklch(94% 0.02 250);
-  --accent-foreground: oklch(38% 0.09 250);
+  --accent: #e1edf8;
+  --accent-foreground: #154470;
 
   /* Semantic Colors - Google Palette */
-  --destructive: oklch(57% 0.23 27);      /* Google Red */
-  --destructive-foreground: oklch(100% 0 0);  /* White text on red */
-  --success: oklch(64% 0.19 145);          /* Google Green */
-  --success-foreground: oklch(100% 0 0);       /* White text on green */
-  --warning: oklch(79% 0.21 82);           /* Google Yellow */
-  --warning-foreground: oklch(28% 0.08 82); /* Dark text on yellow */
+  --destructive: #df071a;            /* Google Red */
+  --destructive-foreground: #ffffff; /* White text on red */
+  --success: #1fa836;                /* Google Green */
+  --success-foreground: #ffffff;     /* White text on green */
+  --warning: #fca800;                /* Google Yellow */
+  --warning-foreground: #3c2300;     /* Dark text on yellow */
 
   /* Difficulty Indicators */
-  --difficulty-easy: oklch(64% 0.19 145);
-  --difficulty-medium: oklch(79% 0.21 82);
-  --difficulty-hard: oklch(57% 0.23 27);
-  --difficulty-completed: oklch(60% 0.2 250);
+  --difficulty-easy: #1fa836;
+  --difficulty-medium: #fca800;
+  --difficulty-hard: #df071a;
+  --difficulty-completed: #0081f1;
 
   /* Borders & Inputs */
-  --border: oklch(91% 0.005 240);
-  --input: oklch(90% 0.005 240);
-  --ring: oklch(56% 0.21 254);
+  --border: #dee2e4;
+  --input: #dbdee1;
+  --ring: #0070ea;
 
   /* Chart Colors - Google Brand Colors */
-  --chart-1: oklch(56% 0.21 254);  /* Google Blue */
-  --chart-2: oklch(57% 0.23 27);   /* Google Red */
-  --chart-3: oklch(79% 0.21 82);   /* Google Yellow */
-  --chart-4: oklch(64% 0.19 145);  /* Google Green */
-  --chart-5: oklch(52% 0.2 300);  /* Purple accent */
+  --chart-1: #0070ea;  /* Google Blue */
+  --chart-2: #df071a;  /* Google Red */
+  --chart-3: #fca800;  /* Google Yellow */
+  --chart-4: #1fa836;  /* Google Green */
+  --chart-5: #7d40c8;  /* Purple accent */
 
   /* Sidebar - Distinct from page background */
-  --sidebar: oklch(100% 0 0);
-  --sidebar-foreground: oklch(18% 0.02 260);
-  --sidebar-primary: oklch(56% 0.21 254);
-  --sidebar-primary-foreground: oklch(100% 0 0);
-  --sidebar-accent: oklch(90% 0.02 250);
-  --sidebar-accent-foreground: oklch(32% 0.1 250);
-  --sidebar-border: oklch(93% 0.005 240);
-  --sidebar-ring: oklch(56% 0.21 254);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0c121a;
+  --sidebar-primary: #0070ea;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #d4dfeb;
+  --sidebar-accent-foreground: #003463;
+  --sidebar-border: #e5e8eb;
+  --sidebar-ring: #0070ea;
   --sidebar-width: 20rem;
   --sidebar-width-icon: 3rem;
 
   /* Section accent colors for sidebar */
-  --section-free: oklch(60% 0.18 142);
-  --section-premium: oklch(79% 0.21 82);
+  --section-free: #2d9924;
+  --section-premium: #fca800;
   --section-settings: var(--primary);
-  --section-admin: oklch(50% 0.25 295);
+  --section-admin: #7523de;
 }
 
 /* Disable transitions during sidebar drag resize for smooth performance */
@@ -653,79 +653,79 @@ button:enabled,
 
 .dark {
   /* Surfaces - Dark grays with subtle blue tint */
-  --background: oklch(12% 0.015 260);
-  --foreground: oklch(94% 0.01 250);
+  --background: #03060b;
+  --foreground: #e6ecf2;
 
   /* Cards & Popovers */
-  --card: oklch(20% 0.012 255);
-  --card-foreground: oklch(94% 0.01 250);
-  --popover: oklch(20% 0.012 255);
-  --popover-foreground: oklch(94% 0.01 250);
+  --card: #12161b;
+  --card-foreground: #e6ecf2;
+  --popover: #12161b;
+  --popover-foreground: #e6ecf2;
 
   /* Primary - Google Blue (lighter for dark mode) */
-  --primary: oklch(73% 0.14 250);
-  --primary-foreground: oklch(12% 0.03 260);
-  --primary-dark: oklch(56% 0.21 254);
-  --primary-light: oklch(78% 0.12 250);
+  --primary: #5cadfc;
+  --primary-foreground: #020511;
+  --primary-dark: #0070ea;
+  --primary-light: #79bdff;
 
   /* Gradient Background variables */
-  --background-start: oklch(8% 0.01 260);
-  --background-end: oklch(15% 0.015 260);
+  --background-start: #010203;
+  --background-end: #080b12;
 
   /* Secondary */
-  --secondary: oklch(24% 0.02 255);
-  --secondary-foreground: oklch(88% 0.01 250);
-  --secondary-hover: oklch(28% 0.015 255);
+  --secondary: #192029;
+  --secondary-foreground: #d3d8de;
+  --secondary-hover: #242930;
 
   /* Muted */
-  --muted: oklch(21% 0.012 255);
-  --muted-foreground: oklch(69% 0.015 250);
+  --muted: #15191e;
+  --muted-foreground: #959ca5;
 
   /* Accent */
-  --accent: oklch(22% 0.03 260);
-  --accent-foreground: oklch(88% 0.01 250);
+  --accent: #121b29;
+  --accent-foreground: #d3d8de;
 
   /* Semantic Colors - Adjusted for dark mode */
-  --destructive: oklch(65% 0.18 20);
-  --destructive-foreground: oklch(100% 0 0);
-  --success: oklch(82% 0.18 140);
-  --success-foreground: oklch(36% 0.12 140);
-  --warning: oklch(86% 0.18 80);
-  --warning-foreground: oklch(28% 0.1 80);
+  --destructive: #e85760;
+  --destructive-foreground: #ffffff;
+  --success: #7fe06a;
+  --success-foreground: #0e4b00;
+  --warning: #ffc100;
+  --warning-foreground: #412000;
 
   /* Difficulty Indicators */
-  --difficulty-easy: oklch(82% 0.18 140);
-  --difficulty-medium: oklch(86% 0.18 80);
-  --difficulty-hard: oklch(65% 0.18 20);
-  --difficulty-completed: oklch(73% 0.14 250);
+  --difficulty-easy: #7fe06a;
+  --difficulty-medium: #ffc100;
+  --difficulty-hard: #e85760;
+  --difficulty-completed: #5cadfc;
 
   /* Borders & Inputs */
-  --border: oklch(28% 0.015 255);
-  --input: oklch(28% 0.015 255);
-  --ring: oklch(73% 0.14 250);
+  --border: #242930;
+  --input: #242930;
+  --ring: #5cadfc;
 
   /* Chart Colors - Brightened for dark mode */
-  --chart-1: oklch(73% 0.14 250);
-  --chart-2: oklch(65% 0.18 20);
-  --chart-3: oklch(86% 0.18 80);
-  --chart-4: oklch(82% 0.18 140);
-  --chart-5: oklch(69% 0.18 300);
+  --chart-1: #5cadfc;
+  --chart-2: #e85760;
+  --chart-3: #ffc100;
+  --chart-4: #7fe06a;
+  --chart-5: #ae7df9;
 
   /* Sidebar - Noticeably distinct from dark bg */
-  --sidebar: oklch(18% 0.015 260);
-  --sidebar-foreground: oklch(90% 0.01 250);
-  --sidebar-primary: oklch(73% 0.14 250);
-  --sidebar-primary-foreground: oklch(12% 0.03 260);
-  --sidebar-accent: oklch(24% 0.03 260);
-  --sidebar-accent-foreground: oklch(85% 0.01 250);
-  --sidebar-border: oklch(27% 0.02 260);
-  --sidebar-ring: oklch(73% 0.14 250);
+  --sidebar: #0e1218;
+  --sidebar-foreground: #d9dfe5;
+  --sidebar-primary: #5cadfc;
+  --sidebar-primary-foreground: #020511;
+  --sidebar-accent: #171f2e;
+  --sidebar-accent-foreground: #c9ced4;
+  --sidebar-border: #212730;
+  --sidebar-ring: #5cadfc;
 
   /* Section accent colors for sidebar */
-  --section-free: oklch(72% 0.18 140);
-  --section-premium: oklch(86% 0.18 80);
+  --section-free: #5fbf49;
+  --section-premium: #ffc100;
   --section-settings: var(--primary);
-  --section-admin: oklch(58% 0.25 295);
+  --section-admin: #8b45fa;
 }
 
 /* ======================
@@ -799,7 +799,7 @@ button:enabled,
 /* --- Dashboard Section (Standard Primary Blue) --- */
 .sidebar-btn-dashboard[data-active="true"] {
   border-left: 4px solid var(--primary) !important;
-  background-color: color-mix(in oklch, var(--primary) 8%, transparent) !important;
+  background-color: rgba(0, 112, 234, 0.08) !important;
   color: var(--primary) !important;
   font-weight: 700 !important;
   padding-left: 0.5rem !important;
@@ -813,13 +813,13 @@ button:enabled,
 /* --- Free Section (Green) --- */
 /* Inactive State: Soft color-coded theme */
 .sidebar-btn-free {
-  color: color-mix(in oklch, var(--section-free) 75%, transparent) !important;
+  color: rgba(45, 153, 36, 0.75) !important;
 }
 .sidebar-btn-free svg {
-  color: color-mix(in oklch, var(--section-free) 70%, transparent) !important;
+  color: rgba(45, 153, 36, 0.70) !important;
 }
 .sidebar-btn-free:hover {
-  background-color: color-mix(in oklch, var(--section-free) 8%, transparent) !important;
+  background-color: rgba(45, 153, 36, 0.08) !important;
   color: var(--section-free) !important;
 }
 .sidebar-btn-free:hover svg {
@@ -828,7 +828,7 @@ button:enabled,
 /* Active State: Rich, full color themed highlight */
 .sidebar-btn-free[data-active="true"] {
   border-left: 4px solid var(--section-free) !important;
-  background-color: color-mix(in oklch, var(--section-free) 12%, transparent) !important;
+  background-color: rgba(45, 153, 36, 0.12) !important;
   color: var(--section-free) !important;
   font-weight: 700 !important;
   padding-left: 0.5rem !important;
@@ -842,13 +842,13 @@ button:enabled,
 /* --- Premium Section (Yellow) --- */
 /* Inactive State: Soft color-coded theme */
 .sidebar-btn-premium {
-  color: color-mix(in oklch, var(--section-premium) 75%, transparent) !important;
+  color: rgba(252, 168, 0, 0.75) !important;
 }
 .sidebar-btn-premium svg {
-  color: color-mix(in oklch, var(--section-premium) 70%, transparent) !important;
+  color: rgba(252, 168, 0, 0.70) !important;
 }
 .sidebar-btn-premium:hover {
-  background-color: color-mix(in oklch, var(--section-premium) 8%, transparent) !important;
+  background-color: rgba(252, 168, 0, 0.08) !important;
   color: var(--section-premium) !important;
 }
 .sidebar-btn-premium:hover svg {
@@ -857,7 +857,7 @@ button:enabled,
 /* Active State: Rich, full color themed highlight */
 .sidebar-btn-premium[data-active="true"] {
   border-left: 4px solid var(--section-premium) !important;
-  background-color: color-mix(in oklch, var(--section-premium) 12%, transparent) !important;
+  background-color: rgba(252, 168, 0, 0.12) !important;
   color: var(--section-premium) !important;
   font-weight: 700 !important;
   padding-left: 0.5rem !important;
@@ -871,13 +871,13 @@ button:enabled,
 /* --- Settings Section (Slate-Gray / Primary Blue) --- */
 /* Inactive State: Soft color-coded theme */
 .sidebar-btn-settings {
-  color: color-mix(in oklch, var(--section-settings) 75%, transparent) !important;
+  color: rgba(0, 112, 234, 0.75) !important;
 }
 .sidebar-btn-settings svg {
-  color: color-mix(in oklch, var(--section-settings) 70%, transparent) !important;
+  color: rgba(0, 112, 234, 0.70) !important;
 }
 .sidebar-btn-settings:hover {
-  background-color: color-mix(in oklch, var(--section-settings) 8%, transparent) !important;
+  background-color: rgba(0, 112, 234, 0.08) !important;
   color: var(--section-settings) !important;
 }
 .sidebar-btn-settings:hover svg {
@@ -886,7 +886,7 @@ button:enabled,
 /* Active State: Rich, full color themed highlight */
 .sidebar-btn-settings[data-active="true"] {
   border-left: 4px solid var(--section-settings) !important;
-  background-color: color-mix(in oklch, var(--section-settings) 12%, transparent) !important;
+  background-color: rgba(0, 112, 234, 0.12) !important;
   color: var(--section-settings) !important;
   font-weight: 700 !important;
   padding-left: 0.5rem !important;
@@ -900,13 +900,13 @@ button:enabled,
 /* --- Admin Section (Purple) --- */
 /* Inactive State: Soft color-coded theme */
 .sidebar-btn-admin {
-  color: color-mix(in oklch, var(--section-admin) 75%, transparent) !important;
+  color: rgba(117, 35, 222, 0.75) !important;
 }
 .sidebar-btn-admin svg {
-  color: color-mix(in oklch, var(--section-admin) 70%, transparent) !important;
+  color: rgba(117, 35, 222, 0.70) !important;
 }
 .sidebar-btn-admin:hover {
-  background-color: color-mix(in oklch, var(--section-admin) 8%, transparent) !important;
+  background-color: rgba(117, 35, 222, 0.08) !important;
   color: var(--section-admin) !important;
 }
 .sidebar-btn-admin:hover svg {
@@ -915,7 +915,7 @@ button:enabled,
 /* Active State: Rich, full color themed highlight */
 .sidebar-btn-admin[data-active="true"] {
   border-left: 4px solid var(--section-admin) !important;
-  background-color: color-mix(in oklch, var(--section-admin) 12%, transparent) !important;
+  background-color: rgba(117, 35, 222, 0.12) !important;
   color: var(--section-admin) !important;
   font-weight: 700 !important;
   padding-left: 0.5rem !important;
@@ -928,57 +928,57 @@ button:enabled,
 
 /* Custom Google Brand Cards - Solid subtle backgrounds */
 .card-google-indigo {
-  background-color: oklch(56% 0.15 275 / 4%) !important;
-  border: 1px solid oklch(56% 0.15 275 / 15%) !important;
+  background-color: rgba(102, 102, 204, 0.04) !important;
+  border: 1px solid rgba(94, 107, 201, 0.15) !important;
 }
 .dark .card-google-indigo {
-  background-color: oklch(73% 0.12 270 / 6%) !important;
-  border: 1px solid oklch(73% 0.12 270 / 20%) !important;
+  background-color: rgba(136, 170, 238, 0.06) !important;
+  border: 1px solid rgba(140, 165, 245, 0.20) !important;
 }
 
 .card-google-red {
-  background-color: oklch(57% 0.23 27 / 4%) !important;
-  border: 1px solid oklch(57% 0.23 27 / 15%) !important;
+  background-color: rgba(230, 0, 26, 0.04) !important;
+  border: 1px solid rgba(221, 7, 27, 0.15) !important;
 }
 .dark .card-google-red {
-  background-color: oklch(65% 0.18 20 / 6%) !important;
-  border: 1px solid oklch(65% 0.18 20 / 20%) !important;
+  background-color: rgba(238, 85, 102, 0.06) !important;
+  border: 1px solid rgba(230, 85, 95, 0.20) !important;
 }
 
 .card-google-green {
-  background-color: oklch(64% 0.19 145 / 4%) !important;
-  border: 1px solid oklch(64% 0.19 145 / 15%) !important;
+  background-color: rgba(26, 179, 51, 0.04) !important;
+  border: 1px solid rgba(34, 168, 54, 0.15) !important;
 }
 .dark .card-google-green {
-  background-color: oklch(82% 0.18 140 / 6%) !important;
-  border: 1px solid oklch(82% 0.18 140 / 20%) !important;
+  background-color: rgba(119, 221, 102, 0.06) !important;
+  border: 1px solid rgba(125, 225, 105, 0.20) !important;
 }
 
 .card-google-yellow {
-  background-color: oklch(79% 0.21 82 / 4%) !important;
-  border: 1px solid oklch(79% 0.21 82 / 15%) !important;
+  background-color: rgba(255, 179, 0, 0.04) !important;
+  border: 1px solid rgba(255, 168, 0, 0.15) !important;
 }
 .dark .card-google-yellow {
-  background-color: oklch(86% 0.18 80 / 5%) !important;
-  border: 1px solid oklch(86% 0.18 80 / 20%) !important;
+  background-color: rgba(255, 196, 0, 0.05) !important;
+  border: 1px solid rgba(255, 195, 0, 0.20) !important;
 }
 
 .card-google-purple {
-  background-color: oklch(52% 0.2 300 / 4%) !important;
-  border: 1px solid oklch(52% 0.2 300 / 15%) !important;
+  background-color: rgba(128, 77, 204, 0.04) !important;
+  border: 1px solid rgba(128, 67, 201, 0.15) !important;
 }
 .dark .card-google-purple {
-  background-color: oklch(69% 0.18 300 / 6%) !important;
-  border: 1px solid oklch(69% 0.18 300 / 20%) !important;
+  background-color: rgba(170, 119, 255, 0.06) !important;
+  border: 1px solid rgba(175, 125, 250, 0.20) !important;
 }
 
 .card-google-blue {
-  background-color: oklch(56% 0.15 250 / 4%) !important;
-  border: 1px solid oklch(56% 0.15 250 / 15%) !important;
+  background-color: rgba(26, 128, 204, 0.04) !important;
+  border: 1px solid rgba(20, 121, 201, 0.15) !important;
 }
 .dark .card-google-blue {
-  background-color: oklch(70% 0.14 250 / 6%) !important;
-  border: 1px solid oklch(70% 0.14 250 / 20%) !important;
+  background-color: rgba(85, 170, 238, 0.06) !important;
+  border: 1px solid rgba(85, 165, 240, 0.20) !important;
 }
 
 /* Custom Auth Submit Button style */

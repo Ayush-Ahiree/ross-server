@@ -1191,7 +1191,7 @@ export async function processSecurityScan(
   await step.run("initialize-user-api-responses", async () => {
     await pool.query(
       `UPDATE evaluation_status
-       SET payload = COALESCE(payload, '{}'::jsonb) || '{"userApiResponses": []}'::jsonb
+       SET payload = COALESCE(payload, '{}'::jsonb) || '{"userApiResponses": [], "userApiCallStatuses": {}}'::jsonb
        WHERE id = $1`,
       [job.id],
     );

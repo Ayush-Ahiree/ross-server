@@ -190,15 +190,15 @@ export const styleTypography = (root: HTMLElement) => {
 
     root.querySelectorAll("h1, h2, h3, h4, h5").forEach((el) => {
         const elem = el as HTMLElement;
-        elem.style.fontWeight = "900";
-        elem.style.color = "#020617";
-        elem.style.lineHeight = "1.2";
-        elem.style.margin = "12px 0 16px 0";
-        elem.style.display = "block";
+        elem.style.setProperty("font-weight", "900", "important");
+        elem.style.setProperty("color", "#020617", "important");
+        elem.style.setProperty("line-height", "1.2", "important");
+        elem.style.setProperty("margin", "24px 0 16px 0", "important");
+        elem.style.setProperty("display", "block", "important");
         
-        if (elem.tagName === "H3") elem.style.fontSize = "24px";
-        if (elem.tagName === "H4") elem.style.fontSize = "18px";
-        if (elem.tagName === "H5") elem.style.fontSize = "14px";
+        if (elem.tagName === "H3") elem.style.setProperty("font-size", "24px", "important");
+        if (elem.tagName === "H4") elem.style.setProperty("font-size", "18px", "important");
+        if (elem.tagName === "H5") elem.style.setProperty("font-size", "14px", "important");
     });
 
     // Handle small labels (often used above input/data boxes)
@@ -274,24 +274,32 @@ export const styleTypography = (root: HTMLElement) => {
         container.style.setProperty("flex-direction", "row", "important");
         container.style.setProperty("align-items", "center", "important");
         container.style.setProperty("flex-wrap", "nowrap", "important");
+        container.style.setProperty("gap", "12px", "important"); // Proper breathing space between icon and text
         
-        // CRITICAL: Wrap naked text nodes so they can be targeted for nudging
+        // CRITICAL for html2canvas: Wrap naked text nodes in a single combined span to prevent space collapse
+        let combinedText = "";
+        const textNodes: Node[] = [];
         Array.from(container.childNodes).forEach(node => {
-            if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
-                const span = document.createElement("span");
-                span.textContent = node.textContent;
-                node.parentNode?.replaceChild(span, node);
+            if (node.nodeType === Node.TEXT_NODE) {
+                combinedText += node.textContent || "";
+                textNodes.push(node);
             }
         });
+        
+        if (combinedText.trim()) {
+            textNodes.forEach(node => node.parentNode?.removeChild(node));
+            const span = document.createElement("span");
+            span.textContent = combinedText; // Keep original spaces and formatting!
+            container.appendChild(span);
+        }
 
         // If it contains an SVG or Lucide icon, or is a header, apply more aggressive alignment
         const hasIcon = container.querySelector("svg, .lucide");
         const isHeader = container.tagName.match(/^H[1-6]$/);
-        const shouldRealign = isSecurityIterationHeader(container.textContent || "");
         
-        if ((hasIcon || isHeader) && shouldRealign) {
+        if (hasIcon || isHeader) {
             container.style.setProperty("min-height", "32px", "important");
-            
+
             // For headers and icon rows, nudge icons and text differently
             container.childNodes.forEach(node => {
                 if (node.nodeType === Node.ELEMENT_NODE) {
@@ -303,7 +311,7 @@ export const styleTypography = (root: HTMLElement) => {
                         child.style.setProperty("align-items", "center", "important");
                         const svg = child.querySelector("svg") || (child.tagName === "SVG" ? child : null) as HTMLElement;
                         if (svg) {
-                            svg.style.setProperty("margin-top", "0px", "important");
+                            svg.style.setProperty("margin-top", "2px", "important"); // Nudge icon down slightly
                         }
                     } else {
                         // Text node handling
@@ -321,7 +329,7 @@ export const styleTypography = (root: HTMLElement) => {
                         
                         const isJustifyBetween = container.classList.contains("justify-between");
                         if (!isJustifyBetween && !hasFlexGrow) {
-                            child.style.setProperty("transform", "translateY(-4px)", "important");
+                            child.style.setProperty("transform", "translateY(-1px)", "important"); // Gentle nudge to keep text centered cleanly
                         }
                     }
                 }

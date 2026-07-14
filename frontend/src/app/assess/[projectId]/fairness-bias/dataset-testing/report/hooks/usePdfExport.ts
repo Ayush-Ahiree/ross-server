@@ -9,6 +9,59 @@ import {
 } from "./pdfStyles";
 import { THRESHOLDS } from "../../constants";
 
+const oklchCache = new Map<string, string>();
+const convertOklchToRgb = (colorStr: string): string => {
+    if (oklchCache.has(colorStr)) {
+        return oklchCache.get(colorStr)!;
+    }
+    try {
+        if (typeof document === "undefined") return "rgb(0, 0, 0)";
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return "rgb(0, 0, 0)";
+        ctx.fillStyle = colorStr;
+        const resolved = ctx.fillStyle;
+        oklchCache.set(colorStr, resolved);
+        return resolved;
+    } catch (e) {
+        return "rgb(0, 0, 0)";
+    }
+};
+
+const resolveColorFunctions = (value: any): any => {
+    if (typeof value !== "string") return value;
+    if (!value.includes("oklch") && !value.includes("oklab") && !value.includes("lab") && !value.includes("lch")) {
+        return value;
+    }
+    return value.replace(/(oklch|oklab|lab|lch)\([^)]+\)/g, (match) => {
+        return convertOklchToRgb(match);
+    });
+};
+
+const ruleCache = new WeakMap<any, any>();
+const getProxyRule = (rule: any): any => {
+    if (!rule) return rule;
+    if (ruleCache.has(rule)) return ruleCache.get(rule);
+
+    const proxy = new Proxy(rule, {
+        get(target, prop, receiver) {
+            if (prop === "cssText") {
+                try {
+                    const originalText = target.cssText;
+                    return resolveColorFunctions(originalText);
+                } catch (e) {
+                    return Reflect.get(target, prop, receiver);
+                }
+            }
+            return Reflect.get(target, prop, receiver);
+        }
+    });
+    ruleCache.set(rule, proxy);
+    return proxy;
+};
+
 interface UsePdfExportProps {
     reportRef: RefObject<HTMLDivElement>;
     payload: DatasetReportPayload | null;
@@ -35,9 +88,78 @@ export const usePdfExport = ({ reportRef, payload }: UsePdfExportProps) => {
         if (!reportRef.current || !payload) return;
         if (isExportingRef.current) return;
 
+        let originalDescriptor: any = null;
+        let originalGetComputedStyle: any = null;
+
         try {
             setIsExporting(true);
             isExportingRef.current = true;
+
+            // Apply color patches for html2canvas
+            if (typeof CSSStyleSheet !== "undefined") {
+                originalDescriptor = Object.getOwnPropertyDescriptor(CSSStyleSheet.prototype, "cssRules");
+                if (originalDescriptor) {
+                    Object.defineProperty(CSSStyleSheet.prototype, "cssRules", {
+                        get() {
+                            try {
+                                const rules = originalDescriptor.get.call(this);
+                                if (!rules) return rules;
+
+                                const filteredRules: any[] = [];
+                                for (let i = 0; i < rules.length; i++) {
+                                    filteredRules.push(getProxyRule(rules[i]));
+                                }
+
+                                const ruleList: any = {
+                                    length: filteredRules.length,
+                                    item(index: number) { return filteredRules[index]; },
+                                    [Symbol.iterator]() {
+                                        let i = 0;
+                                        return {
+                                            next() {
+                                                return i < filteredRules.length
+                                                    ? { value: filteredRules[i++], done: false }
+                                                    : { done: true };
+                                            }
+                                        };
+                                    }
+                                };
+                                filteredRules.forEach((rule, idx) => {
+                                    ruleList[idx] = rule;
+                                });
+                                Object.setPrototypeOf(ruleList, CSSRuleList.prototype);
+                                return ruleList;
+                            } catch (e) {
+                                return null;
+                            }
+                        },
+                        configurable: true
+                    });
+                }
+            }
+
+            if (typeof window !== "undefined") {
+                originalGetComputedStyle = window.getComputedStyle;
+                window.getComputedStyle = function(element, pseudoElt) {
+                    const style = originalGetComputedStyle.call(this, element, pseudoElt);
+                    return new Proxy(style, {
+                        get(target, prop, receiver) {
+                            if (prop === "getPropertyValue") {
+                                return function(propertyName: string) {
+                                    const val = target.getPropertyValue(propertyName);
+                                    return resolveColorFunctions(val);
+                                };
+                            }
+                            const val = Reflect.get(target, prop, receiver);
+                            if (typeof val === "string") {
+                                return resolveColorFunctions(val);
+                            }
+                            return val;
+                        }
+                    });
+                };
+            }
+
             await new Promise(resolve => setTimeout(resolve, PDF_RENDERING_DELAY_MS));
 
             const [jsPDFModule, html2canvasModule] = await Promise.all([
@@ -871,6 +993,14 @@ export const usePdfExport = ({ reportRef, payload }: UsePdfExportProps) => {
         } catch (error) {
             console.error("Failed to export PDF", error);
         } finally {
+            // Restore original descriptors/methods
+            if (originalDescriptor && typeof CSSStyleSheet !== "undefined") {
+                Object.defineProperty(CSSStyleSheet.prototype, "cssRules", originalDescriptor);
+            }
+            if (originalGetComputedStyle && typeof window !== "undefined") {
+                window.getComputedStyle = originalGetComputedStyle;
+            }
+
             setIsExporting(false);
             isExportingRef.current = false;
         }

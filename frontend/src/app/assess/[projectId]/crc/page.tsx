@@ -330,9 +330,9 @@ export default function CRCAssessmentPage() {
                   <span
                     className="inline-flex items-center text-[9px] py-0.5 px-2 rounded-full font-semibold border shrink-0"
                     style={{
-                      backgroundColor: "color-mix(in oklch, var(--section-premium) 10%, transparent)",
+                      backgroundColor: "rgba(252, 168, 0, 0.10)",
                       color: "var(--section-premium)",
-                      borderColor: "color-mix(in oklch, var(--section-premium) 20%, transparent)",
+                      borderColor: "rgba(252, 168, 0, 0.20)",
                     }}
                   >
                     Control {currentIndex + 1} of {totalControls}
