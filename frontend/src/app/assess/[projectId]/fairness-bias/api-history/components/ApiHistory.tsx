@@ -204,8 +204,8 @@ export const ApiHistory = ({ projectId, routeMode = 'fairness' }: ApiHistoryProp
                                                     <Server className="w-4 h-4" />
                                                 </div>
                                                 <div>
-                                                    <div className="font-medium text-foreground truncate max-w-[200px] flex items-center gap-2">
-                                                        {report.config?.apiUrl || "Unknown Endpoint"}
+                                                    <div className="font-medium text-foreground flex items-center gap-2 max-w-[300px] sm:max-w-[400px] md:max-w-[500px]">
+                                                        <span className="truncate">{report.config?.apiUrl || "Unknown Endpoint"}</span>
                                                         {report.config?.testType === "SECURITY_SCAN" && (
                                                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
                                                                 <Shield className="w-3 h-3" />

@@ -729,7 +729,7 @@ router.get("/jobs/project/:projectId", authenticateToken, async (req, res) => {
             return res.status(403).json({ error: "Project not found or access denied" });
         }
 
-        // Fetch all jobs (queued, processing, running, completed) for this project and user
+        // Fetch all jobs (queued, processing, running, completed, etc.) for this project and user
         const result = await pool.query(
             `SELECT 
                 id,
@@ -744,14 +744,20 @@ router.get("/jobs/project/:projectId", authenticateToken, async (req, res) => {
                 created_at,
                 updated_at
             FROM evaluation_status
-            WHERE project_id = $1 AND user_id = $2 AND status IN ('queued', 'processing', 'running', 'completed')
+            WHERE project_id = $1 AND user_id = $2 AND status IN ('queued', 'processing', 'running', 'collecting_responses', 'evaluating', 'completed', 'success', 'failed', 'partial_success')
             ORDER BY created_at DESC`,
             [projectId, userId]
         );
 
         const jobs = result.rows.map(row => {
-            // Normalize status to lowercase for consistent API responses
-            const normalizedStatus = String(row.status).toLowerCase() as "queued" | "processing" | "running" | "completed";
+            // Normalize status for consistent API responses
+            const rawStatus = String(row.status).toLowerCase();
+            let normalizedStatus: string = rawStatus;
+
+            if (rawStatus === 'success' || rawStatus === 'partial_success' || rawStatus === 'completed') {
+                normalizedStatus = 'completed';
+            }
+
             return {
                 jobId: row.job_id,
                 status: normalizedStatus,

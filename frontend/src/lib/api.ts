@@ -1017,7 +1017,7 @@ class ApiService {
     success: boolean;
     jobs: Array<{
       jobId: string;
-      status: "queued" | "running" | "completed";
+      status: "queued" | "processing" | "running" | "completed" | "failed" | "collecting_responses" | "evaluating" | "success" | "partial_success";
       progress: string;
       percent: number;
       lastProcessedPrompt: string | null;
@@ -1031,7 +1031,7 @@ class ApiService {
       success: boolean;
       jobs: Array<{
         jobId: string;
-        status: "queued" | "running" | "completed";
+        status: "queued" | "processing" | "running" | "completed" | "failed" | "collecting_responses" | "evaluating" | "success" | "partial_success";
         progress: string;
         percent: number;
         lastProcessedPrompt: string | null;

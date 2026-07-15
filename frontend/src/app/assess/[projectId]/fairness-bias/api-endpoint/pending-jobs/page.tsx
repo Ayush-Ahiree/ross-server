@@ -16,7 +16,7 @@ import {
 
 type PendingJob = {
   jobId: string;
-  status: "queued" | "running" | "completed" | "collecting_responses" | "evaluating" | "success" | "partial_success" | "failed";
+  status: "queued" | "processing" | "running" | "completed" | "collecting_responses" | "evaluating" | "success" | "partial_success" | "failed";
   progress: string;
   percent: number;
   lastProcessedPrompt: string | null;
@@ -27,6 +27,7 @@ type PendingJob = {
 
 const statusColors: Record<string, string> = {
   queued: "text-info bg-info/10",
+  processing: "text-primary bg-primary/10",
   running: "text-primary bg-primary/10",
   completed: "text-success bg-success/10",
   collecting_responses: "text-info bg-info/10",
