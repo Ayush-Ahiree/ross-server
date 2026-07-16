@@ -92,7 +92,7 @@ test.describe("CRC assessment → report → dashboard", () => {
     // 37.5% is in the boundary zone where the two pages disagree in tone:
     // dashboard's getReadinessTier (30-59% = "Partially Ready", mildly
     // positive) vs score-report-crc's getMaturityLabel (<40% = "Needs
-    // Attention", urgent) — see ross-server-readiness-dashboard-qa memory.
+    // Attention", urgent).
     const pattern = (i) => {
       if (i < 10) return "NA";
       if (i < 58) return "Yes";
@@ -208,10 +208,10 @@ test.describe("CRC assessment → report → dashboard", () => {
     await crcDash.goto(projectId);
     await expect(crcDash.noAssessmentData).toBeVisible();
 
-    // Known bug (ross-server-readiness-dashboard-qa memory): QuickWinsWidget
-    // renders unconditionally above the hasResponses check, so a zero-answer
-    // project shows recommended "quick wins" at the same time as "no
-    // assessment data yet" — contradictory framing.
+    // Known bug: QuickWinsWidget renders unconditionally above the
+    // hasResponses check, so a zero-answer project shows recommended
+    // "quick wins" at the same time as "no assessment data yet" —
+    // contradictory framing.
     const quickWinsVisible = await crcDash.quickWinsHeading.isVisible().catch(() => false);
     await page.screenshot({ path: "e2e/.artifacts/crc-dashboard-quickwins-bug.png", fullPage: true });
 
