@@ -9,7 +9,7 @@
 // wizard (which gates CRC) only requires a premium account, not a finished
 // AIMA assessment.
 const { test, expect } = require("@playwright/test");
-const { STORAGE_STATE } = require("../constants");
+const { STORAGE_STATE, API_BASE_URL } = require("../constants");
 const { DashboardPage } = require("../pages/dashboard.page");
 const { PremiumFeaturesPage } = require("../pages/premium-features.page");
 const { CrcPage } = require("../pages/crc.page");
@@ -33,6 +33,19 @@ async function createWizardedProject(page, name) {
   return projectId;
 }
 
+// Every test creates its own project; this deletes it via a direct API call
+// regardless of whether the test passed or failed, so a failed run doesn't
+// leave the project behind (the dashboard's own delete flow is broken for
+// never-started projects — see vulnerability-assessment.spec.js). Callers
+// wrap their test body in try/finally and call this in the finally branch.
+async function deleteProject(page, projectId) {
+  if (!projectId) return;
+  const token = await page.evaluate(() => localStorage.getItem("auth_token"));
+  await page.request.delete(`${API_BASE_URL}/projects/${projectId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch((err) => console.error(`Failed to clean up project ${projectId}:`, err));
+}
+
 test.describe("CRC assessment → report → dashboard", () => {
   test("all 'Yes' → 100% Ready/Strong, dashboard+report agree, PDF export works", async ({ page }) => {
     const name = `E2E CRC Yes ${Date.now()}`;
@@ -40,48 +53,59 @@ test.describe("CRC assessment → report → dashboard", () => {
     const crcDash = new CrcDashboardPage(page);
     let projectId;
 
-    await test.step("wizard + answer all 138 controls 'Yes'", async () => {
-      projectId = await createWizardedProject(page, name);
-      await crc.answerAllAndSubmit(projectId, "Yes");
-      await expect(page).toHaveURL(/score-report-crc/i);
-    });
+    try {
+      await test.step("wizard + answer all 138 controls 'Yes'", async () => {
+        projectId = await createWizardedProject(page, name);
+        await crc.answerAllAndSubmit(projectId, "Yes");
+        await expect(page).toHaveURL(/score-report-crc/i);
+      });
 
-    await test.step("report shows 100% and 'Strong'", async () => {
-      await expect(crc.reportSummaryHeading).toBeVisible();
-      await expect(crc.reportOverallReadiness).toBeVisible();
-      await expect(page.getByText(/100(\.0)?%/).first()).toBeVisible();
-      await expect(crc.reportMaturityLabel).toHaveText(/strong/i);
-      await page.screenshot({ path: "e2e/.artifacts/crc-report-100.png", fullPage: true });
-    });
+      await test.step("report shows 100% and 'Strong'", async () => {
+        await expect(crc.reportSummaryHeading).toBeVisible();
+        await expect(crc.reportOverallReadiness).toBeVisible();
+        await expect(page.getByText(/100(\.0)?%/).first()).toBeVisible();
+        await expect(crc.reportMaturityLabel).toHaveText(/strong/i);
+        await page.screenshot({ path: "e2e/.artifacts/crc-report-100.png", fullPage: true });
+      });
 
-    await test.step("dashboard agrees: 'Ready' tier, no Quick-Wins-before-data contradiction", async () => {
-      await crcDash.goto(projectId);
-      await expect(crcDash.tierBadge).toHaveText(/ready/i);
-      await expect(crcDash.noAssessmentData).toHaveCount(0); // fully answered, so this banner must NOT show
-      await page.screenshot({ path: "e2e/.artifacts/crc-dashboard-100.png", fullPage: true });
-    });
+      await test.step("dashboard agrees: 'Ready' tier, no Quick-Wins-before-data contradiction", async () => {
+        await crcDash.goto(projectId);
+        await expect(crcDash.tierBadge).toHaveText(/ready/i);
+        await expect(crcDash.noAssessmentData).toHaveCount(0); // fully answered, so this banner must NOT show
+        await page.screenshot({ path: "e2e/.artifacts/crc-dashboard-100.png", fullPage: true });
+      });
 
-    await test.step("PDF export (Full + Summary) both succeed with no console errors", async () => {
-      const errors = [];
-      page.on("console", (msg) => { if (msg.type() === "error") errors.push(msg.text()); });
+      await test.step("PDF export (Full + Summary) both succeed with no console errors", async () => {
+        const errors = [];
+        page.on("console", (msg) => { if (msg.type() === "error") errors.push(msg.text()); });
 
-      const [download1] = await Promise.all([
-        page.waitForEvent("download", { timeout: 30_000 }),
-        crcDash.exportFullButton.click(),
-      ]);
-      expect(await download1.path()).toBeTruthy();
+        const [download1] = await Promise.all([
+          page.waitForEvent("download", { timeout: 30_000 }),
+          crcDash.exportFullButton.click(),
+        ]);
+        expect(await download1.path()).toBeTruthy();
 
-      const [download2] = await Promise.all([
-        page.waitForEvent("download", { timeout: 30_000 }),
-        crcDash.exportSummaryButton.click(),
-      ]);
-      expect(await download2.path()).toBeTruthy();
+        const [download2] = await Promise.all([
+          page.waitForEvent("download", { timeout: 30_000 }),
+          crcDash.exportSummaryButton.click(),
+        ]);
+        expect(await download2.path()).toBeTruthy();
 
-      expect(errors, `console errors during PDF export: ${errors.join(" | ")}`).toEqual([]);
-    });
+        expect(errors, `console errors during PDF export: ${errors.join(" | ")}`).toEqual([]);
+      });
+    } finally {
+      await deleteProject(page, projectId);
+    }
   });
 
   test("mixed NA/Yes/No pattern → NA excluded from denominator, dashboard/report tier-label mismatch reproduces", async ({ page }) => {
+    // This test documents a known, still-open product bug (see the readiness
+    // dashboard bug list) and is expected to fail on its last assertion until
+    // that bug is fixed — test.fail() turns that expected failure into a
+    // passing run (and, crucially, into a build failure the day this
+    // unexpectedly starts passing, which is the signal the bug got fixed).
+    test.fail(true, "Known bug: dashboard getReadinessTier vs report getMaturityLabel disagree at boundary scores (e.g. 37.5% = 'Partially Ready' on the dashboard, 'Needs Attention' on the report)");
+
     const name = `E2E CRC Mixed ${Date.now()}`;
     const crc = new CrcPage(page);
     const crcDash = new CrcDashboardPage(page);
@@ -99,41 +123,43 @@ test.describe("CRC assessment → report → dashboard", () => {
       return "No";
     };
 
-    let total;
-    await test.step("wizard + answer with NA/Yes/No mix", async () => {
-      projectId = await createWizardedProject(page, name);
-      await crc.answerAllAndSubmit(projectId, pattern);
-      await expect(page).toHaveURL(/score-report-crc/i);
-    });
+    try {
+      await test.step("wizard + answer with NA/Yes/No mix", async () => {
+        projectId = await createWizardedProject(page, name);
+        await crc.answerAllAndSubmit(projectId, pattern);
+        await expect(page).toHaveURL(/score-report-crc/i);
+      });
 
-    await test.step("report reflects NA-excluded percentage, not raw yes-count/total", async () => {
-      await expect(crc.reportOverallReadiness).toBeVisible();
-      // naive (wrong) calc would be 48/138 = 34.8%; correct NA-excluded calc is 37.5%.
-      await expect(page.getByText(/37\.5%/).first()).toBeVisible();
-      await page.screenshot({ path: "e2e/.artifacts/crc-report-mixed.png", fullPage: true });
-    });
+      await test.step("report reflects NA-excluded percentage, not raw yes-count/total", async () => {
+        await expect(crc.reportOverallReadiness).toBeVisible();
+        // naive (wrong) calc would be 48/138 = 34.8%; correct NA-excluded calc is 37.5%.
+        await expect(page.getByText(/37\.5%/).first()).toBeVisible();
+        await page.screenshot({ path: "e2e/.artifacts/crc-report-mixed.png", fullPage: true });
+      });
 
-    let reportLabel;
-    await test.step("capture report maturity label", async () => {
-      reportLabel = (await crc.reportMaturityLabel.innerText()).trim().toLowerCase();
-    });
+      let reportLabel;
+      await test.step("capture report maturity label", async () => {
+        reportLabel = (await crc.reportMaturityLabel.innerText()).trim().toLowerCase();
+      });
 
-    await test.step("dashboard tier label vs report maturity label at 37.5%", async () => {
-      await crcDash.goto(projectId);
-      await expect(page.getByText(/37\.5%/).first()).toBeVisible();
-      const dashLabel = (await crcDash.tierBadge.innerText()).trim().toLowerCase();
-      await page.screenshot({ path: "e2e/.artifacts/crc-dashboard-mixed.png", fullPage: true });
+      await test.step("dashboard tier label vs report maturity label at 37.5%", async () => {
+        await crcDash.goto(projectId);
+        await expect(page.getByText(/37\.5%/).first()).toBeVisible();
+        const dashLabel = (await crcDash.tierBadge.innerText()).trim().toLowerCase();
+        await page.screenshot({ path: "e2e/.artifacts/crc-dashboard-mixed.png", fullPage: true });
 
-      console.log(`[crc-tier-mismatch] report="${reportLabel}" dashboard="${dashLabel}" at 37.5%`);
-      // This assertion is EXPECTED TO FAIL while the bug is unfixed — dashboard
-      // says "partially ready" (mildly positive) while the report says "needs
-      // attention" (urgent) for the identical 37.5% score. A failure here is
-      // the live reproduction of the known bug, not a broken test.
-      expect(
-        dashLabel.includes("partially") === reportLabel.includes("needs attention"),
-        `dashboard="${dashLabel}" vs report="${reportLabel}" — same 37.5% score, opposite framing`
-      ).toBeFalsy();
-    });
+        console.log(`[crc-tier-mismatch] report="${reportLabel}" dashboard="${dashLabel}" at 37.5%`);
+        // Asserts the two labels actually AGREE — this is the correct,
+        // desired behavior, and fails today because they don't. See the
+        // test.fail() call above for why that's the intended, tracked state.
+        expect(
+          dashLabel.includes("partially") === reportLabel.includes("needs attention"),
+          `dashboard="${dashLabel}" vs report="${reportLabel}" — same 37.5% score, opposite framing`
+        ).toBeFalsy();
+      });
+    } finally {
+      await deleteProject(page, projectId);
+    }
   });
 
   test("submit is blocked until all 138 controls are answered", async ({ page }) => {
@@ -141,81 +167,103 @@ test.describe("CRC assessment → report → dashboard", () => {
     const crc = new CrcPage(page);
     let projectId;
 
-    await test.step("wizard + answer only the first 5 controls", async () => {
-      projectId = await createWizardedProject(page, name);
-      await crc.gotoAssessment(projectId);
-      for (let i = 0; i < 5; i++) {
-        const before = await crc.counter.innerText();
-        await crc.answerOption("Yes").click();
-        await page.waitForTimeout(300);
-        await crc.nextButton.click();
-        await expect.poll(() => crc.counter.innerText(), { timeout: 15_000 }).not.toBe(before);
-      }
-    });
+    try {
+      await test.step("wizard + answer only the first 5 controls", async () => {
+        projectId = await createWizardedProject(page, name);
+        await crc.gotoAssessment(projectId);
+        for (let i = 0; i < 5; i++) {
+          const before = await crc.counter.innerText();
+          await crc.answerOption("Yes").click();
+          await page.waitForTimeout(300);
+          await crc.nextButton.click();
+          await expect.poll(() => crc.counter.innerText(), { timeout: 15_000 }).not.toBe(before);
+        }
+      });
 
-    await test.step("submit button stays disabled and reports the missing count", async () => {
-      await expect(crc.submitButton).toBeDisabled();
-      await expect(crc.submitBlockedReason).toHaveCount(1);
-      const title = await crc.submitBlockedReason.getAttribute("title");
-      expect(title).toMatch(/5\/138|answer all controls/i);
-    });
+      await test.step("submit button stays disabled and reports the missing count", async () => {
+        await expect(crc.submitButton).toBeDisabled();
+        await expect(crc.submitBlockedReason).toHaveCount(1);
+        const title = await crc.submitBlockedReason.getAttribute("title");
+        // Requires the actual "5/<total>" count, not just the generic phrase
+        // — the total isn't hardcoded to 138 (the published control count
+        // could change), but the numerator must be exactly 5 since that's
+        // exactly how many controls this test answered.
+        expect(title).toMatch(/5\/\d+/);
+      });
+    } finally {
+      await deleteProject(page, projectId);
+    }
   });
 
   test("evidence tracker: blocked URL is rejected server-side, valid URL completes the audit-ready flow", async ({ page }) => {
     const name = `E2E CRC Evidence ${Date.now()}`;
     const crc = new CrcPage(page);
+    let projectId;
 
-    const projectId = await createWizardedProject(page, name);
-    await crc.gotoAssessment(projectId);
+    try {
+      projectId = await createWizardedProject(page, name);
+      await crc.gotoAssessment(projectId);
 
-    await test.step("answer the first control, then try a blocklisted evidence URL", async () => {
-      await crc.answerOption("Yes").click();
-      await page.waitForTimeout(400);
+      await test.step("answer the first control, then try a blocklisted evidence URL", async () => {
+        await crc.answerOption("Yes").click();
+        await page.waitForTimeout(400);
 
-      await crc.evidenceStatusSelect.selectOption("Evidence in Progress");
-      await page.waitForTimeout(300);
+        await crc.evidenceStatusSelect.selectOption("Evidence in Progress");
+        await page.waitForTimeout(300);
 
-      // google.com is on the backend's BLOCKED_DOMAINS list (validateEvidenceUrl
-      // in backend/src/routes/crc.ts) — the save should be rejected server-side
-      // and the input should roll back, not silently accept it.
-      await crc.evidenceUrlInput.fill("https://google.com");
-      await crc.evidenceUrlInput.press("Tab");
-      await expect(crc.blockedEvidenceUrlToast).toBeVisible({ timeout: 10_000 });
-      await expect(crc.evidenceUrlInput).toHaveValue("");
-      await expect(crc.auditReadyCheckbox).toHaveCount(0); // never appeared — no evidenceUrl was actually saved
-    });
+        // google.com is on the backend's BLOCKED_DOMAINS list (validateEvidenceUrl
+        // in backend/src/routes/crc.ts) — the save should be rejected server-side
+        // and the input should roll back, not silently accept it.
+        await crc.evidenceUrlInput.fill("https://google.com");
+        await crc.evidenceUrlInput.press("Tab");
+        await expect(crc.blockedEvidenceUrlToast).toBeVisible({ timeout: 10_000 });
+        await expect(crc.evidenceUrlInput).toHaveValue("");
+        await expect(crc.auditReadyCheckbox).toHaveCount(0); // never appeared — no evidenceUrl was actually saved
+      });
 
-    await test.step("a real evidence URL saves, and the audit-ready flow completes", async () => {
-      await crc.evidenceUrlInput.fill("https://docs.com");
-      await crc.evidenceUrlInput.press("Tab");
-      await expect(crc.evidenceUrlSavedToast).toBeVisible({ timeout: 10_000 });
+      await test.step("a real evidence URL saves, and the audit-ready flow completes", async () => {
+        await crc.evidenceUrlInput.fill("https://docs.com");
+        await crc.evidenceUrlInput.press("Tab");
+        await expect(crc.evidenceUrlSavedToast).toBeVisible({ timeout: 10_000 });
 
-      await crc.evidenceStatusSelect.selectOption("Evidence Complete");
-      await page.waitForTimeout(300);
+        await crc.evidenceStatusSelect.selectOption("Evidence Complete");
+        await page.waitForTimeout(300);
 
-      await expect(crc.auditReadyCheckbox).toBeVisible({ timeout: 10_000 });
-      await crc.auditReadyCheckbox.check();
-      await expect(crc.auditReadyCheckbox).toBeChecked();
-    });
+        await expect(crc.auditReadyCheckbox).toBeVisible({ timeout: 10_000 });
+        await crc.auditReadyCheckbox.check();
+        await expect(crc.auditReadyCheckbox).toBeChecked();
+      });
+    } finally {
+      await deleteProject(page, projectId);
+    }
   });
 
   test("fresh project (wizard done, zero CRC answers): Quick Wins widget renders before the empty-state check", async ({ page }) => {
+    // See the test.fail() note on the tier-label-mismatch test above — same
+    // reasoning applies here for this known, still-open product bug.
+    test.fail(true, "Known bug: QuickWinsWidget renders unconditionally, before the CRC dashboard's hasResponses/empty-state check");
+
     const name = `E2E CRC QuickWins ${Date.now()}`;
     const crcDash = new CrcDashboardPage(page);
+    let projectId;
 
-    const projectId = await createWizardedProject(page, name);
+    try {
+      projectId = await createWizardedProject(page, name);
 
-    await crcDash.goto(projectId);
-    await expect(crcDash.noAssessmentData).toBeVisible();
+      await crcDash.goto(projectId);
+      await expect(crcDash.noAssessmentData).toBeVisible();
 
-    // Known bug: QuickWinsWidget renders unconditionally above the
-    // hasResponses check, so a zero-answer project shows recommended
-    // "quick wins" at the same time as "no assessment data yet" —
-    // contradictory framing.
-    const quickWinsVisible = await crcDash.quickWinsHeading.isVisible().catch(() => false);
-    await page.screenshot({ path: "e2e/.artifacts/crc-dashboard-quickwins-bug.png", fullPage: true });
+      // Known bug: QuickWinsWidget renders unconditionally above the
+      // hasResponses check, so a zero-answer project shows recommended
+      // "quick wins" at the same time as "no assessment data yet" —
+      // contradictory framing.
+      const quickWinsVisible = await crcDash.quickWinsHeading.isVisible().catch(() => false);
+      await page.screenshot({ path: "e2e/.artifacts/crc-dashboard-quickwins-bug.png", fullPage: true });
 
-    console.log(`[crc-quickwins-bug] Quick Wins widget visible alongside empty state: ${quickWinsVisible}`);
-    expect(quickWinsVisible, "Quick Wins should NOT render before any CRC answers exist").toBeFalsy();
+      console.log(`[crc-quickwins-bug] Quick Wins widget visible alongside empty state: ${quickWinsVisible}`);
+      expect(quickWinsVisible, "Quick Wins should NOT render before any CRC answers exist").toBeFalsy();
+    } finally {
+      await deleteProject(page, projectId);
+    }
   });
 });

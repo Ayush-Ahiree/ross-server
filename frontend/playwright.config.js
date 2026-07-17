@@ -5,7 +5,9 @@ const path = require("path");
 
 require("dotenv").config({ path: path.join(__dirname, "e2e/.env.e2e") });
 
-const BASE_URL = process.env.E2E_BASE_URL || "https://ross-server-w14l.vercel.app";
+// Single source of truth: BASE_URL comes from e2e/constants.js (which reads
+// E2E_BASE_URL — see e2e/.env.e2e.example), not a literal duplicated here.
+const { BASE_URL } = require("./e2e/constants");
 
 module.exports = defineConfig({
   testDir: "./e2e",

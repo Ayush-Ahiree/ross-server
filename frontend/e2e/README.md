@@ -46,25 +46,34 @@ e2e/
 │  ├─ report.page.js          AIMA report
 │  ├─ premium-features.page.js
 │  ├─ wizard.page.js          AI System Profile Wizard
-│  ├─ crc.page.js
+│  ├─ crc.page.js                       CRC assessment question flow
+│  ├─ crc-dashboard.page.js             CRC Readiness Dashboard
 │  ├─ vulnerability-assessment.page.js  AI Vulnerability Assessment config screen
-│  └─ vulnerability-job.page.js         security-scan job-status screen
+│  ├─ vulnerability-job.page.js         security-scan job-status screen
+│  ├─ vulnerability-pending-jobs.page.js  security-scan pending-jobs list
+│  └─ vulnerability-report.page.js      security-scan report/scorecard
 └─ tests/
    ├─ project-lifecycle.spec.js   create a project, then delete it
    ├─ aima-report.spec.js         all 3 answer states, edit + resubmit, nav/notes,
    │                              missing-answers dialog
-   ├─ vulnerability-assessment.spec.js  configure + start a security scan
-   │                                    (stops once the job page is reached —
-   │                                    see TODO in the spec for what's left)
+   ├─ crc-full.spec.js            full CRC lifecycle: 100%-Yes scoring + PDF
+   │                              export, mixed NA/Yes/No scoring, submit-blocked
+   │                              guard, evidence tracker + URL blocklist, Quick
+   │                              Wins empty-state check
+   ├─ crc-pdf-export.spec.js      standalone CRC dashboard PDF re-check (skips
+   │                              unless CRC_PDF_PROJECT_ID is set)
+   ├─ vulnerability-assessment.spec.js  full security-scan lifecycle: configure,
+   │                                    start, wait for a terminal status,
+   │                                    verify the scorecard, PDF export,
+   │                                    pending-jobs list, scan history
    ├─ premium-feature.spec.js     disabled — CRC + premium suite coverage
    └─ fully-compliant.spec.js     disabled — CRC with full evidence trail
 ```
 
-Only AIMA and vulnerability-assessment (partial) coverage is active right
-now. `premium-feature.spec.js` and `fully-compliant.spec.js` are commented
-out in full (uncomment to re-enable); their page objects
-(`premium-features.page.js`, `wizard.page.js`, `crc.page.js`) are already in
-place.
+AIMA, CRC, and vulnerability-assessment coverage are all active.
+`premium-feature.spec.js` and `fully-compliant.spec.js` are commented out in
+full (uncomment to re-enable); their page objects (`premium-features.page.js`,
+`wizard.page.js`, `crc.page.js`) are already in place.
 
 Add new locators/actions as methods on the relevant page object; write a new
 spec under `tests/`.

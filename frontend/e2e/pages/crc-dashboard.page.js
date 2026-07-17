@@ -16,7 +16,13 @@ class CrcDashboardPage {
 
   async goto(projectId) {
     await this.page.goto(`/assess/${projectId}/crc/dashboard`, { waitUntil: "domcontentloaded" });
-    await this.page.waitForTimeout(1500); // let the 4-call load waterfall settle
+    // Wait for whichever stable state the 4-call load waterfall settles into
+    // — a scored tier badge, or the empty state on a zero-answer project —
+    // instead of a fixed sleep.
+    await Promise.race([
+      this.tierBadge.waitFor({ timeout: 30_000 }).catch(() => {}),
+      this.noAssessmentData.waitFor({ timeout: 30_000 }).catch(() => {}),
+    ]);
   }
 }
 

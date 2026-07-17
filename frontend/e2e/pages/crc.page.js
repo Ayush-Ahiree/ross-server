@@ -85,7 +85,12 @@ class CrcPage {
       const text = await this.counter.innerText();
       const match = text.match(/Control (\d+) of (\d+)/);
       const total = match ? Number(match[2]) : null;
-      const label = typeof labelOrFn === "function" ? labelOrFn(i, total) : labelOrFn;
+      // Derived from the displayed "Control N of M", not the loop variable:
+      // gotoAssessment() can resume at the first unanswered control (not
+      // necessarily #1), so a mixed pattern keyed on the loop index would be
+      // applied to the wrong controls after a resume.
+      const index = match ? Number(match[1]) - 1 : i;
+      const label = typeof labelOrFn === "function" ? labelOrFn(index, total) : labelOrFn;
 
       await this.answerOption(label).click();
       await this.page.waitForTimeout(400); // let the answer persist
