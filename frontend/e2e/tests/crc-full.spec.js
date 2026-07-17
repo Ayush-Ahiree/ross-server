@@ -41,9 +41,20 @@ async function createWizardedProject(page, name) {
 async function deleteProject(page, projectId) {
   if (!projectId) return;
   const token = await page.evaluate(() => localStorage.getItem("auth_token"));
-  await page.request.delete(`${API_BASE_URL}/projects/${projectId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  }).catch((err) => console.error(`Failed to clean up project ${projectId}:`, err));
+  // Not thrown/asserted: this runs in a `finally` block, possibly after the
+  // test itself already failed, and a throw here would replace that
+  // original error rather than add to it. Logging loudly is enough to make
+  // a failed cleanup visible without masking the real failure.
+  try {
+    const response = await page.request.delete(`${API_BASE_URL}/projects/${projectId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok()) {
+      console.error(`Failed to clean up project ${projectId}: DELETE returned ${response.status()}`);
+    }
+  } catch (err) {
+    console.error(`Failed to clean up project ${projectId}:`, err);
+  }
 }
 
 test.describe("CRC assessment → report → dashboard", () => {
@@ -99,13 +110,6 @@ test.describe("CRC assessment → report → dashboard", () => {
   });
 
   test("mixed NA/Yes/No pattern → NA excluded from denominator, dashboard/report tier-label mismatch reproduces", async ({ page }) => {
-    // This test documents a known, still-open product bug (see the readiness
-    // dashboard bug list) and is expected to fail on its last assertion until
-    // that bug is fixed — test.fail() turns that expected failure into a
-    // passing run (and, crucially, into a build failure the day this
-    // unexpectedly starts passing, which is the signal the bug got fixed).
-    test.fail(true, "Known bug: dashboard getReadinessTier vs report getMaturityLabel disagree at boundary scores (e.g. 37.5% = 'Partially Ready' on the dashboard, 'Needs Attention' on the report)");
-
     const name = `E2E CRC Mixed ${Date.now()}`;
     const crc = new CrcPage(page);
     const crcDash = new CrcDashboardPage(page);
@@ -149,9 +153,13 @@ test.describe("CRC assessment → report → dashboard", () => {
         await page.screenshot({ path: "e2e/.artifacts/crc-dashboard-mixed.png", fullPage: true });
 
         console.log(`[crc-tier-mismatch] report="${reportLabel}" dashboard="${dashLabel}" at 37.5%`);
-        // Asserts the two labels actually AGREE — this is the correct,
-        // desired behavior, and fails today because they don't. See the
-        // test.fail() call above for why that's the intended, tracked state.
+
+        // Asserts the two labels actually agree at the same score. Currently
+        // fails — dashboard's getReadinessTier and score-report-crc's
+        // getMaturityLabel use different thresholds/vocabulary, so 37.5%
+        // reads as "Partially Ready" on one and "Needs Attention" on the
+        // other. Left as a real, unmasked assertion on purpose: this should
+        // go red until that's fixed, and turn green on its own once it is.
         expect(
           dashLabel.includes("partially") === reportLabel.includes("needs attention"),
           `dashboard="${dashLabel}" vs report="${reportLabel}" — same 37.5% score, opposite framing`
@@ -239,10 +247,6 @@ test.describe("CRC assessment → report → dashboard", () => {
   });
 
   test("fresh project (wizard done, zero CRC answers): Quick Wins widget renders before the empty-state check", async ({ page }) => {
-    // See the test.fail() note on the tier-label-mismatch test above — same
-    // reasoning applies here for this known, still-open product bug.
-    test.fail(true, "Known bug: QuickWinsWidget renders unconditionally, before the CRC dashboard's hasResponses/empty-state check");
-
     const name = `E2E CRC QuickWins ${Date.now()}`;
     const crcDash = new CrcDashboardPage(page);
     let projectId;
