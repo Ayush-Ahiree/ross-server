@@ -358,12 +358,15 @@ router.post("/:projectId/apply", authenticateToken, loadProject, requireProjectR
       const profile = profileResult.rows[0];
       const hasName = profile.name && profile.name.trim() !== "";
       if (hasName) {
+        await client.query("SAVEPOINT project_name_update");
         try {
           await client.query(
             "UPDATE projects SET name = $1, description = $2, wizard_completed = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $3",
             [profile.name.trim(), profile.description || "", projectId]
           );
+          await client.query("RELEASE SAVEPOINT project_name_update");
         } catch (nameErr: any) {
+          await client.query("ROLLBACK TO SAVEPOINT project_name_update");
           // If name update fails due to unique name collision (error code 23505), update description & status without overriding name
           if (nameErr?.code === "23505") {
             await client.query(
@@ -422,8 +425,8 @@ router.post("/:projectId/apply", authenticateToken, loadProject, requireProjectR
           ) VALUES ($1, NULL, $2, $3, $4, 'Open', $5, $6, 'AI Wizard', NULL, 'Quarterly', 'Automated')`,
           [
             projectId,
-            risk.title.slice(0, 300),
-            (risk.category || "General").slice(0, 100),
+            String(risk.title).slice(0, 300),
+            String(risk.category || "General").slice(0, 100),
             rating,
             risk.description || "",
             risk.mitigation_plan || "",
@@ -501,9 +504,9 @@ router.post("/:projectId/apply", authenticateToken, loadProject, requireProjectR
           [
             projectId,
             componentId,
-            comp.component_name.slice(0, 255),
+            String(comp.component_name).slice(0, 255),
             compType,
-            (comp.provider || "Unknown").slice(0, 255),
+            String(comp.provider || "Unknown").slice(0, 255),
             comp.role_in_system || "Wizard identified component",
             JSON.stringify(dataCategories),
             riskTier,
@@ -535,7 +538,7 @@ router.post("/:projectId/apply", authenticateToken, loadProject, requireProjectR
   } catch (error: any) {
     if (client) await client.query("ROLLBACK");
     console.error("Error applying wizard profile:", error);
-    const detail = error?.detail || error?.message || "Unknown error";
+    const detail = process.env.NODE_ENV === "development" ? (error?.detail || error?.message || "Unknown error") : undefined;
     const code = error?.code || "UNKNOWN";
     res.status(500).json({ success: false, error: "Failed to apply wizard profile", detail, code });
   } finally {
