@@ -16,18 +16,15 @@ class TeamPage {
 
   async goto(projectId) {
     await this.page.goto(`/assess/${projectId}/team`, { waitUntil: "domcontentloaded" });
-    await Promise.race([
-      this.inviteHeading.waitFor({ timeout: 30_000 }).catch(() => {}),
-      this.membersHeading.waitFor({ timeout: 30_000 }).catch(() => {}),
-    ]);
+    await this.inviteHeading.or(this.membersHeading).waitFor({ timeout: 30_000 });
   }
 
   memberRow(email) {
-    return this.page.getByRole("row", { name: new RegExp(email, "i") });
+    return this.page.getByRole("row", { name: email });
   }
 
   invitationRow(email) {
-    return this.page.getByRole("row", { name: new RegExp(email, "i") });
+    return this.page.getByRole("row", { name: email });
   }
 
   async invite(email, role) {

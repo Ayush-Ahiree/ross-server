@@ -40,12 +40,12 @@ async function createWizardedProject(page, name) {
 // wrap their test body in try/finally and call this in the finally branch.
 async function deleteProject(page, projectId) {
   if (!projectId) return;
-  const token = await page.evaluate(() => localStorage.getItem("auth_token"));
   // Not thrown/asserted: this runs in a `finally` block, possibly after the
   // test itself already failed, and a throw here would replace that
   // original error rather than add to it. Logging loudly is enough to make
   // a failed cleanup visible without masking the real failure.
   try {
+    const token = await page.evaluate(() => localStorage.getItem("auth_token"));
     const response = await page.request.delete(`${API_BASE_URL}/projects/${projectId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });

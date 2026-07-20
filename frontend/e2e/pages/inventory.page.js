@@ -24,14 +24,11 @@ class InventoryPage {
 
   async goto(projectId) {
     await this.page.goto(`/assess/${projectId}/inventory`, { waitUntil: "domcontentloaded" });
-    await Promise.race([
-      this.addComponentButton.waitFor({ timeout: 30_000 }).catch(() => {}),
-      this.emptyState.waitFor({ timeout: 30_000 }).catch(() => {}),
-    ]);
+    await this.addComponentButton.or(this.emptyState).waitFor({ timeout: 30_000 });
   }
 
   row(componentName) {
-    return this.page.getByRole("row", { name: new RegExp(componentName, "i") });
+    return this.page.getByRole("row", { name: componentName });
   }
 
   // Icon-only ghost buttons (IconEdit/IconTrash from @tabler/icons-react)

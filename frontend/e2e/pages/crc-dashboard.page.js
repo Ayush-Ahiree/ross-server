@@ -18,16 +18,9 @@ class CrcDashboardPage {
     await this.page.goto(`/assess/${projectId}/crc/dashboard`, { waitUntil: "domcontentloaded" });
     // Wait for whichever stable state the 4-call load waterfall settles into
     // — a scored tier badge, or the empty state on a zero-answer project —
-    // instead of a fixed sleep.
-    // No .catch() here on purpose: if neither state ever appears, the
-    // waitFor() should reject and surface a real timeout error at the call
-    // site, rather than Promise.race silently resolving once both swallowed
-    // timeouts settle (which would let the caller proceed against a page
-    // that never actually loaded).
-    await Promise.race([
-      this.tierBadge.waitFor({ timeout: 30_000 }),
-      this.noAssessmentData.waitFor({ timeout: 30_000 }),
-    ]);
+    // instead of a fixed sleep. .or() rejects if neither appears within the
+    // timeout, so a real load failure still surfaces at the call site.
+    await this.tierBadge.or(this.noAssessmentData).waitFor({ timeout: 30_000 });
   }
 }
 

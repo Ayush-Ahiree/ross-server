@@ -21,8 +21,8 @@ test.setTimeout(5 * 60 * 1000);
 
 async function deleteProject(page, projectId) {
   if (!projectId) return;
-  const token = await page.evaluate(() => localStorage.getItem("auth_token"));
   try {
+    const token = await page.evaluate(() => localStorage.getItem("auth_token"));
     const response = await page.request.delete(`${API_BASE_URL}/projects/${projectId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
