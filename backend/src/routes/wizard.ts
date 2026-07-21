@@ -394,6 +394,19 @@ router.post("/:projectId/apply", authenticateToken, loadProject, requireProjectR
     const suggestedRisks = outputs.suggested_risks || [];
     const acceptedRisks = Array.isArray(req.body?.acceptedRisks) ? req.body.acceptedRisks : null;
     
+    if (suggestedRisks.length > 0) {
+      // Global transaction-level lock to prevent concurrent rewinds of the sequence
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('crc_risks_seq_sync'))");
+      await client.query(`
+        SELECT setval('crc_risks_seq', max_val)
+        FROM (
+          SELECT COALESCE(MAX(NULLIF(regexp_replace(risk_code, '[^0-9]', '', 'g'), '')::bigint), 0) AS max_val 
+          FROM crc_risks
+        ) m
+        WHERE max_val > (SELECT last_value FROM crc_risks_seq)
+      `);
+    }
+
     for (const risk of suggestedRisks) {
       if (!risk || typeof risk !== "object" || !risk.title) continue;
 
@@ -418,20 +431,33 @@ router.post("/:projectId/apply", authenticateToken, loadProject, requireProjectR
           else if (r === "low") rating = "Low";
         }
 
-        await client.query(
-          `INSERT INTO crc_risks (
-            project_id, control_id, title, category, rating, status, description,
-            mitigation_plan, owner, target_date, review_frequency, source
-          ) VALUES ($1, NULL, $2, $3, $4, 'Open', $5, $6, 'AI Wizard', NULL, 'Quarterly', 'Automated')`,
-          [
-            projectId,
-            String(risk.title).slice(0, 300),
-            String(risk.category || "General").slice(0, 100),
-            rating,
-            risk.description || "",
-            risk.mitigation_plan || "",
-          ]
-        );
+        // Use SAVEPOINT so a risk_code collision doesn't abort the whole transaction
+        await client.query("SAVEPOINT risk_insert");
+        try {
+          await client.query(
+            `INSERT INTO crc_risks (
+              project_id, control_id, title, category, rating, status, description,
+              mitigation_plan, owner, target_date, review_frequency, source
+            ) VALUES ($1, NULL, $2, $3, $4, 'Open', $5, $6, 'AI Wizard', NULL, 'Quarterly', 'Automated')`,
+            [
+              projectId,
+              String(risk.title).slice(0, 300),
+              String(risk.category || "General").slice(0, 100),
+              rating,
+              risk.description || "",
+              risk.mitigation_plan || "",
+            ]
+          );
+          await client.query("RELEASE SAVEPOINT risk_insert");
+        } catch (riskErr: any) {
+          await client.query("ROLLBACK TO SAVEPOINT risk_insert");
+          if (riskErr?.code === '23505') {
+            // Log but continue only for unique constraint violations (e.g., sequence collisions)
+            console.warn(`Skipped risk insert due to collision (${riskErr?.code}): ${risk.title}`);
+          } else {
+            throw riskErr;
+          }
+        }
       }
     }
 
