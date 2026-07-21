@@ -394,6 +394,17 @@ router.post("/:projectId/apply", authenticateToken, loadProject, requireProjectR
     const suggestedRisks = outputs.suggested_risks || [];
     const acceptedRisks = Array.isArray(req.body?.acceptedRisks) ? req.body.acceptedRisks : null;
     
+    // Sync the crc_risks_seq sequence to be above the max existing risk_code number
+    // This prevents "duplicate key value violates unique constraint crc_risks_risk_code_key" errors
+    if (suggestedRisks.length > 0) {
+      await client.query(`
+        SELECT setval('crc_risks_seq', GREATEST(
+          (SELECT COALESCE(MAX(NULLIF(regexp_replace(risk_code, '[^0-9]', '', 'g'), '')::bigint), 0) FROM crc_risks),
+          (SELECT last_value FROM crc_risks_seq)
+        ))
+      `);
+    }
+
     for (const risk of suggestedRisks) {
       if (!risk || typeof risk !== "object" || !risk.title) continue;
 
@@ -418,20 +429,29 @@ router.post("/:projectId/apply", authenticateToken, loadProject, requireProjectR
           else if (r === "low") rating = "Low";
         }
 
-        await client.query(
-          `INSERT INTO crc_risks (
-            project_id, control_id, title, category, rating, status, description,
-            mitigation_plan, owner, target_date, review_frequency, source
-          ) VALUES ($1, NULL, $2, $3, $4, 'Open', $5, $6, 'AI Wizard', NULL, 'Quarterly', 'Automated')`,
-          [
-            projectId,
-            String(risk.title).slice(0, 300),
-            String(risk.category || "General").slice(0, 100),
-            rating,
-            risk.description || "",
-            risk.mitigation_plan || "",
-          ]
-        );
+        // Use SAVEPOINT so a risk_code collision doesn't abort the whole transaction
+        await client.query("SAVEPOINT risk_insert");
+        try {
+          await client.query(
+            `INSERT INTO crc_risks (
+              project_id, control_id, title, category, rating, status, description,
+              mitigation_plan, owner, target_date, review_frequency, source
+            ) VALUES ($1, NULL, $2, $3, $4, 'Open', $5, $6, 'AI Wizard', NULL, 'Quarterly', 'Automated')`,
+            [
+              projectId,
+              String(risk.title).slice(0, 300),
+              String(risk.category || "General").slice(0, 100),
+              rating,
+              risk.description || "",
+              risk.mitigation_plan || "",
+            ]
+          );
+          await client.query("RELEASE SAVEPOINT risk_insert");
+        } catch (riskErr: any) {
+          await client.query("ROLLBACK TO SAVEPOINT risk_insert");
+          // Log but continue — don't let one risk collision abort the entire profile apply
+          console.warn(`Skipped risk insert (${riskErr?.code}): ${risk.title}`);
+        }
       }
     }
 
