@@ -2,15 +2,21 @@ class VerifyOtpPage {
   constructor(page) {
     this.page = page;
 
-    this.checkInboxHeading = page.getByText(/check your inbox/i);
-    this.verifyButton = page.getByRole("button", { name: /verify code/i });
-    // Actual backend copy is "Invalid or expired OTP" (no trailing "code").
-    // .first() is required, not cosmetic: the app renders this same text
-    // both as an inline banner AND as a toast in the notifications region —
-    // reproduced live 2026-07-18 as a strict-mode "resolved to 2 elements"
-    // failure without it.
-    this.errorText = page.getByText(/invalid or expired otp|please enter a complete 6-digit code/i).first();
-    this.resendLink = page.getByRole("button", { name: /resend code/i });
+    this.checkInboxHeading = page.getByText("Check your inbox", { exact: true });
+    this.verifyButton = page.getByRole("button", { name: "Verify code", exact: true });
+    // Actual backend copy is "Invalid or expired OTP" (no trailing "code" —
+    // backend/src/routes/auth.ts:225; the frontend's own "...OTP code"
+    // fallback never actually fires since the backend always sends a real
+    // error string). .first() is required, not cosmetic: the app renders
+    // this same text both as an inline banner AND as a toast in the
+    // notifications region — reproduced live 2026-07-18 as a strict-mode
+    // "resolved to 2 elements" failure without it. .or() covers the second,
+    // client-side-only validation message instead of one alternation regex.
+    this.errorText = page
+      .getByText("Invalid or expired OTP", { exact: true })
+      .or(page.getByText("Please enter a complete 6-digit code", { exact: true }))
+      .first();
+    this.resendLink = page.getByRole("button", { name: "Resend code", exact: true });
   }
 
   async goto(email) {

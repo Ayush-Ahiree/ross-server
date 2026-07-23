@@ -8,31 +8,49 @@ class CrcPage {
   constructor(page) {
     this.page = page;
 
-    this.welcomeStartLink = page.getByRole("link", { name: /start crc assessment|continue to the crc assessment/i });
+    // crc/welcome/page.tsx: `hasProgress ? "Continue to the CRC assessment"
+    // : "Start CRC assessment"` — two mutually-exclusive fixed strings
+    // (lowercase "assessment", verified against source).
+    this.welcomeStartLink = page
+      .getByRole("link", { name: "Start CRC assessment", exact: true })
+      .or(page.getByRole("link", { name: "Continue to the CRC assessment", exact: true }));
 
+    // "Control N of M" is genuinely dynamic (live counter), so this is the
+    // one locator in this file that can't drop the regex.
     this.counter = page.getByText(/Control \d+ of \d+/).first();
-    this.nextButton = page.getByRole("button", { name: /^next$/i });
-    this.submitButton = page.getByRole("button", { name: /submit assessment/i });
+    this.nextButton = page.getByRole("button", { name: "Next", exact: true });
+    this.submitButton = page.getByRole("button", { name: "Submit Assessment", exact: true });
 
-    this.evidenceStatusSelect = page.getByLabel(/select status/i);
-    this.evidenceUrlInput = page.getByLabel(/evidence url/i);
-    this.auditReadyCheckbox = page.getByLabel(/audit-ready confirmation/i);
+    this.evidenceStatusSelect = page.getByLabel("Select Status", { exact: true });
+    // Full label text is "Evidence URL (HTTPS required)" — substring match,
+    // not exact.
+    this.evidenceUrlInput = page.getByLabel("Evidence URL");
+    // Full label text is "🔒 Audit-ready confirmation" — substring match to
+    // avoid having to encode the emoji prefix exactly.
+    this.auditReadyCheckbox = page.getByLabel("Audit-ready confirmation");
 
     // Sonner toasts (see frontend/src/lib/toast.ts) render their message as
-    // plain text, so a substring match against the backend's exact error
-    // copy is enough to find them.
-    this.blockedEvidenceUrlToast = page.getByText(/does not appear to be a real evidence document/i);
-    this.evidenceUrlSavedToast = page.getByText(/evidence url saved/i);
+    // plain text; Playwright's getByText is already a case-insensitive
+    // substring match on a plain string, so no regex is needed to match
+    // against the backend's longer exact error copy.
+    this.blockedEvidenceUrlToast = page.getByText("does not appear to be a real evidence document");
+    this.evidenceUrlSavedToast = page.getByText("Evidence URL saved", { exact: true });
 
-    this.reportSummaryHeading = page.getByText(/compliance readiness summary/i);
-    this.reportOverallReadiness = page.getByText(/overall compliance readiness/i);
-    this.reportByCategory = page.getByText(/by category/i);
+    this.reportSummaryHeading = page.getByText("Compliance Readiness Summary", { exact: true });
+    this.reportOverallReadiness = page.getByText("Overall compliance readiness", { exact: true });
+    this.reportByCategory = page.getByText("By Category", { exact: true });
     // "Strong"/"Moderate"/"Developing"/"Needs Attention" maturity badge on
-    // /score-report-crc, next to the overall %.
+    // /score-report-crc, next to the overall % (getMaturityTier()'s labels).
     this.reportMaturityLabel = page
-      .getByText(/^(strong|moderate|developing|needs attention)$/i)
+      .getByText("Strong", { exact: true })
+      .or(page.getByText("Moderate", { exact: true }))
+      .or(page.getByText("Developing", { exact: true }))
+      .or(page.getByText("Needs Attention", { exact: true }))
       .first();
-    this.submitBlockedReason = page.getByTitle(/answer all controls/i);
+    // title attribute interpolates live counts ("Answer all controls (3/138)
+    // before submitting"), so this stays a substring match, just without the
+    // regex wrapper.
+    this.submitBlockedReason = page.getByTitle("Answer all controls");
   }
 
   answerOption(label) {

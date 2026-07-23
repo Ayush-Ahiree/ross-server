@@ -2,24 +2,43 @@ class InventoryPage {
   constructor(page) {
     this.page = page;
 
-    this.addComponentButton = page.getByRole("button", { name: /add (component|your first component)/i });
-    this.emptyState = page.getByText(/component inventory is empty/i);
+    // Two mutually-exclusive fixed button labels depending on whether the
+    // inventory already has components.
+    this.addComponentButton = page
+      .getByRole("button", { name: "Add Component", exact: true })
+      .or(page.getByRole("button", { name: "Add Your First Component", exact: true }));
+    // Full copy is "Your component inventory is empty. Start by adding your
+    // first AI system component." — substring match, not exact.
+    this.emptyState = page.getByText("component inventory is empty");
 
-    this.formDialog = page.getByRole("dialog").filter({ hasText: /add new ai component|edit ai component/i });
-    this.roleInput = this.formDialog.getByPlaceholder(/explain exactly what this component does/i);
-    this.noDataProcessingButton = this.formDialog.getByRole("button", { name: /set to 'no data processing'/i });
-    this.createButton = this.formDialog.getByRole("button", { name: /create component|save changes/i });
+    // Radix wires <DialogTitle> to aria-labelledby, so both dialogs' actual
+    // titles ("Add New AI Component" / "Edit AI Component" / "Remove AI
+    // Component") are their accessible `name` — match on that instead of
+    // scanning the whole dialog body with hasText.
+    this.formDialog = page
+      .getByRole("dialog", { name: "Add New AI Component", exact: true })
+      .or(page.getByRole("dialog", { name: "Edit AI Component", exact: true }));
+    this.roleInput = this.formDialog.getByPlaceholder("Explain exactly what this component does");
+    this.noDataProcessingButton = this.formDialog.getByRole("button", { name: "Set to 'No Data Processing'", exact: true });
+    // formMode === "add" ? "Create Component" : "Save Changes" — two
+    // mutually-exclusive fixed strings.
+    this.createButton = this.formDialog
+      .getByRole("button", { name: "Create Component", exact: true })
+      .or(this.formDialog.getByRole("button", { name: "Save Changes", exact: true }));
 
-    this.savedToast = page.getByText(/component (added to inventory|updated successfully)/i);
+    // Two mutually-exclusive fixed toast messages.
+    this.savedToast = page
+      .getByText("Component added to inventory", { exact: true })
+      .or(page.getByText("Component updated successfully", { exact: true }));
 
     // The detail Sheet and the Delete-confirm Dialog are both Radix
     // Dialog.Content under the hood (role="dialog"); only one is open at a
     // time (openAddForm/openEditForm force the detail Sheet closed while the
     // form Dialog is open), so a plain role query is unambiguous per step.
     this.detailPanel = page.getByRole("dialog");
-    this.deleteDialog = page.getByRole("dialog").filter({ hasText: /remove ai component/i });
-    this.deleteConfirmButton = this.deleteDialog.getByRole("button", { name: /^delete component$/i });
-    this.deletedToast = page.getByText(/component removed/i);
+    this.deleteDialog = page.getByRole("dialog", { name: "Remove AI Component", exact: true });
+    this.deleteConfirmButton = this.deleteDialog.getByRole("button", { name: "Delete Component", exact: true });
+    this.deletedToast = page.getByText("Component removed from inventory", { exact: true });
   }
 
   async goto(projectId) {
@@ -27,6 +46,11 @@ class InventoryPage {
     await this.addComponentButton.or(this.emptyState).waitFor({ timeout: 30_000 });
   }
 
+  // `componentName` is caller-supplied dynamic data, not UI copy —
+  // Playwright's role `name` matching is already a case-insensitive
+  // substring match on a plain string, so wrapping it in a RegExp added
+  // nothing except a latent bug: unescaped regex metacharacters in a real
+  // component name (e.g. a "." or "+") would be interpreted as regex syntax.
   row(componentName) {
     return this.page.getByRole("row", { name: componentName });
   }
@@ -46,13 +70,26 @@ class InventoryPage {
   // Data Categories (the "No Data Processing" shortcut satisfies it in one
   // click without opening the vendor-risk-assessment flow a real category
   // would trigger).
+  // Waits on the actual `POST /inventory/:projectId` response (201) rather
+  // than just the dialog closing.
   async addDefaultComponent(role) {
     await this.addComponentButton.click();
     await this.formDialog.waitFor();
     await this.roleInput.fill(role);
     await this.noDataProcessingButton.click();
-    await this.createButton.click();
+
+    const [response] = await Promise.all([
+      this.page.waitForResponse(
+        (res) =>
+          res.request().method() === "POST" &&
+          /\/inventory\/[0-9a-f-]{36}$/i.test(res.url()) &&
+          res.status() === 201
+      ),
+      this.createButton.click(),
+    ]);
     await this.formDialog.waitFor({ state: "hidden" });
+
+    return response.json();
   }
 
   async openDetail(componentName) {
@@ -60,11 +97,22 @@ class InventoryPage {
     await this.detailPanel.waitFor();
   }
 
+  // Waits on the actual `DELETE /inventory/:projectId/:id` response (200)
+  // rather than just the dialog closing.
   async deleteComponent(componentName) {
     await this.openDetail(componentName);
     await this.deleteTriggerButton().click();
     await this.deleteDialog.waitFor();
-    await this.deleteConfirmButton.click();
+
+    await Promise.all([
+      this.page.waitForResponse(
+        (res) =>
+          res.request().method() === "DELETE" &&
+          /\/inventory\/[0-9a-f-]{36}\/[0-9a-f-]{36}$/i.test(res.url()) &&
+          res.status() === 200
+      ),
+      this.deleteConfirmButton.click(),
+    ]);
     await this.deleteDialog.waitFor({ state: "hidden" });
   }
 }

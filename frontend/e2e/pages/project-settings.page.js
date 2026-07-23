@@ -4,8 +4,8 @@ class ProjectSettingsPage {
 
     this.nameInput = page.locator("#project-name");
     this.descriptionInput = page.locator("#project-description");
-    this.updateButton = page.getByRole("button", { name: /update project/i });
-    this.savedToast = page.getByText(/project updated successfully/i);
+    this.updateButton = page.getByRole("button", { name: "Update Project", exact: true });
+    this.savedToast = page.getByText("Project updated successfully", { exact: true });
   }
 
   async goto(projectId) {

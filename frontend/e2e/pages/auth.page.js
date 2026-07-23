@@ -1,16 +1,22 @@
 class AuthPage {
   constructor(page) {
     this.page = page;
-    this.emailInput = page.getByRole("textbox", { name: /email/i }).or(page.locator('input[type="email"]')).first();
+    // <Label htmlFor="email">Email address</Label> associates cleanly with
+    // the input, so its accessible name is exactly "Email address" — no
+    // fallback locator needed.
+    this.emailInput = page.getByRole("textbox", { name: "Email address", exact: true });
     this.passwordInput = page.locator('input[type="password"]').first();
-    this.signInButton = page.getByRole("button", { name: /sign in/i });
+    // Button text is "Sign in"/"Create account" (lowercase, per
+    // frontend/src/app/auth/page.tsx) — verified against source since the
+    // old case-insensitive regex was masking the real casing.
+    this.signInButton = page.getByRole("button", { name: "Sign in", exact: true });
 
     // Signup-only fields (isLogin=false). #password/#confirmPassword ids are
     // shared with the login form's single password field, so scope by id.
     this.nameInput = page.locator("#name");
     this.signupPasswordInput = page.locator("#password");
     this.confirmPasswordInput = page.locator("#confirmPassword");
-    this.createAccountButton = page.getByRole("button", { name: /create account/i });
+    this.createAccountButton = page.getByRole("button", { name: "Create account", exact: true });
   }
 
   // Matches the inline error banner rendered from AuthPage's `error` state

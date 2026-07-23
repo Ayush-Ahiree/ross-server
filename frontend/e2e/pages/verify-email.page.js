@@ -2,13 +2,16 @@ class VerifyEmailPage {
   constructor(page) {
     this.page = page;
 
-    this.loadingText = page.getByText(/verifying your email address/i);
+    this.loadingText = page.getByText("Verifying your email address", { exact: true });
     // Bug found live 2026-07-18 (see goto() below): this page always hits
-    // "Email and OTP are required", never "Invalid or expired verification
-    // token" — the frontend's own fallback string for a *rejected* token is
-    // effectively dead code today.
-    this.errorText = page.getByText(/email and otp are required|invalid or expired verification token/i);
-    this.successText = page.getByText(/your email has been successfully verified/i);
+    // "Email and OTP are required" (backend/src/routes/auth.ts:219), never
+    // the frontend's own "Invalid or expired verification token." fallback
+    // for a *rejected* token — that fallback is effectively dead code today.
+    // .or() covers both fixed strings instead of one alternation regex.
+    this.errorText = page
+      .getByText("Email and OTP are required", { exact: true })
+      .or(page.getByText("Invalid or expired verification token", { exact: false }));
+    this.successText = page.getByText("Your email has been successfully verified!", { exact: true });
   }
 
   // token=null never calls the backend (the page's useEffect is a no-op

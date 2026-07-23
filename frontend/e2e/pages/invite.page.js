@@ -2,12 +2,12 @@ class InvitePage {
   constructor(page) {
     this.page = page;
 
-    this.invalidHeading = page.getByText(/invalid invitation/i);
-    this.projectInvitationHeading = page.getByText(/project invitation/i);
-    this.acceptButton = page.getByRole("button", { name: /^accept invitation$/i });
-    this.declineButton = page.getByRole("button", { name: /^decline invitation$/i });
-    this.signInAndAcceptButton = page.getByRole("button", { name: /sign in & accept/i });
-    this.createAccountButton = page.getByRole("button", { name: /create account & accept/i });
+    this.invalidHeading = page.getByText("Invalid Invitation", { exact: true });
+    this.projectInvitationHeading = page.getByText("Project Invitation", { exact: true });
+    this.acceptButton = page.getByRole("button", { name: "Accept Invitation", exact: true });
+    this.declineButton = page.getByRole("button", { name: "Decline Invitation", exact: true });
+    this.signInAndAcceptButton = page.getByRole("button", { name: "Sign In & Accept", exact: true });
+    this.createAccountButton = page.getByRole("button", { name: "Create Account & Accept", exact: true });
   }
 
   // token=null exercises the "No invitation token provided" path;

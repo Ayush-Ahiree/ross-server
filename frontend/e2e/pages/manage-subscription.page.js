@@ -7,8 +7,12 @@ class ManageSubscriptionPage {
   constructor(page) {
     this.page = page;
 
-    this.heading = page.getByRole("heading", { name: /manage your subscription|subscription/i }).first();
-    this.faqHeading = page.getByText(/frequently asked questions/i);
+    // The real <h1> is "Subscription & Billing" — the old locator's
+    // "Manage Your Subscription" alternative never matched anything; it only
+    // worked at all because of the second, much broader "subscription"
+    // fallback (which happens to be a substring of the real heading).
+    this.heading = page.getByRole("heading", { name: "Subscription & Billing", exact: true }).first();
+    this.faqHeading = page.getByText("Frequently Asked Questions", { exact: true });
   }
 
   async goto() {

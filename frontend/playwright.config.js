@@ -31,13 +31,18 @@ module.exports = defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    viewport: { width: 2560, height: 1440 },
   },
   projects: [
     { name: "setup", testMatch: /auth\.setup\.js/ },
     {
       name: "chromium",
       dependencies: ["setup"],
-      use: { ...devices["Desktop Chrome"] },
+      // devices["Desktop Chrome"] carries its own 1280x720 viewport, which
+      // would silently win over the global `use.viewport` above since
+      // project-level `use` is merged on top of it — so the 1440p viewport
+      // has to be reasserted here, after the spread, to actually apply.
+      use: { ...devices["Desktop Chrome"], viewport: { width: 2560, height: 1440 } },
     },
   ],
 

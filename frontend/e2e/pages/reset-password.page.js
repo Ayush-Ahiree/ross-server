@@ -2,16 +2,21 @@ class ResetPasswordPage {
   constructor(page) {
     this.page = page;
 
-    this.invalidLinkHeading = page.getByText(/invalid reset link/i);
+    this.invalidLinkHeading = page.getByText("Invalid Reset Link", { exact: true });
     this.passwordInput = page.locator("#password");
     this.confirmPasswordInput = page.locator("#confirmPassword");
-    this.submitButton = page.getByRole("button", { name: /^reset password$/i });
-    this.successHeading = page.getByText(/password updated!/i);
+    this.submitButton = page.getByRole("button", { name: "Reset Password", exact: true });
+    this.successHeading = page.getByText("Password Updated!", { exact: true });
     // The page renders `err.message || "Failed to reset password..."` — the
     // backend actually returns a specific message ("Invalid or expired reset
-    // token"), so that's what shows in practice, not the generic fallback.
-    // Verified live 2026-07-18.
-    this.errorBanner = page.getByText(/invalid or expired reset token|failed to reset password|passwords do not match/i);
+    // token", backend/src/routes/auth.ts:486), so that's what shows in
+    // practice, not the generic fallback. Verified live 2026-07-18. `.or()`
+    // covers all three fixed strings this banner can show instead of one
+    // alternation regex.
+    this.errorBanner = page
+      .getByText("Invalid or expired reset token", { exact: true })
+      .or(page.getByText("Failed to reset password", { exact: false }))
+      .or(page.getByText("Passwords do not match", { exact: true }));
   }
 
   // token=null exercises the "Invalid Reset Link" no-token state; a

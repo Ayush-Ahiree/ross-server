@@ -3,9 +3,9 @@ class ForgotPasswordPage {
     this.page = page;
 
     this.emailInput = page.locator("#email");
-    this.sendButton = page.getByRole("button", { name: /send reset link/i });
-    this.checkInboxHeading = page.getByText(/check your inbox/i);
-    this.tryDifferentEmailButton = page.getByRole("button", { name: /try a different email/i });
+    this.sendButton = page.getByRole("button", { name: "Send reset link", exact: true });
+    this.checkInboxHeading = page.getByText("Check your inbox", { exact: true });
+    this.tryDifferentEmailButton = page.getByRole("button", { name: "Try a different email", exact: true });
   }
 
   async goto() {
