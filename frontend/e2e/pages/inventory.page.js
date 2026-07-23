@@ -2,11 +2,11 @@ class InventoryPage {
   constructor(page) {
     this.page = page;
 
-    // Two mutually-exclusive fixed button labels depending on whether the
-    // inventory already has components.
-    this.addComponentButton = page
-      .getByRole("button", { name: "Add Component", exact: true })
-      .or(page.getByRole("button", { name: "Add Your First Component", exact: true }));
+    // The header "Add Component" button is always rendered, empty inventory
+    // or not — the empty-state's "Add Your First Component" button is an
+    // additional CTA shown alongside it, not a replacement for it, so match
+    // on the header button alone rather than a non-exclusive .or().
+    this.addComponentButton = page.getByRole("button", { name: "Add Component", exact: true });
     // Full copy is "Your component inventory is empty. Start by adding your
     // first AI system component." — substring match, not exact.
     this.emptyState = page.getByText("component inventory is empty");
@@ -19,7 +19,13 @@ class InventoryPage {
       .getByRole("dialog", { name: "Add New AI Component", exact: true })
       .or(page.getByRole("dialog", { name: "Edit AI Component", exact: true }));
     this.roleInput = this.formDialog.getByPlaceholder("Explain exactly what this component does");
-    this.noDataProcessingButton = this.formDialog.getByRole("button", { name: "Set to 'No Data Processing'", exact: true });
+    // Not getByRole: the button is nested inside the <label> for "Data
+    // Categories Sent/Processed *" (inventory/page.tsx), so browsers compute
+    // its accessible name from that wrapping label's text, not its own —
+    // getByRole("button", {name: "Set to 'No Data Processing'"}) never
+    // matches. Matching on its visible text sidesteps the broken a11y name
+    // without depending on it being fixed.
+    this.noDataProcessingButton = this.formDialog.getByText("Set to 'No Data Processing'", { exact: true });
     // formMode === "add" ? "Create Component" : "Save Changes" — two
     // mutually-exclusive fixed strings.
     this.createButton = this.formDialog
